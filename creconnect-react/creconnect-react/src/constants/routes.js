@@ -1,0 +1,51 @@
+export const ROUTES = {
+  /* ── Public ── */
+  HOME:              '/',
+  ROLE_SELECT:       '/signup',
+  CREATOR_SIGNUP:    '/signup/creator',
+  BRAND_SIGNUP:      '/signup/brand',
+  LOGIN:             '/login',
+  FORGOT_PASSWORD:   '/forgot-password',
+  RESET_PASSWORD:    '/reset-password',
+
+  /* ── Creator ── */
+  CREATOR_DASHBOARD:    '/creator/dashboard',
+  CREATOR_FIND_BRANDS:  '/creator/find-brands',
+  CREATOR_CAMPAIGNS:    '/creator/campaigns',
+  CREATOR_COLLABS:      '/creator/collaborations',
+  CREATOR_REVIEWS:      '/creator/reviews',
+  CREATOR_PROFILE:      '/creator/profile',
+  CREATOR_INFO:         '/creator/information',
+  CREATOR_MESSAGES:     '/creator/messages',
+  CREATOR_NOTIFS:       '/creator/notifications',
+  CREATOR_REMINDERS:    '/creator/reminders',
+  CREATOR_REPORT:       '/creator/report',
+  BRAND_PORTFOLIO:      '/creator/brand-portfolio',
+
+  /* ── Brand ── */
+  BRAND_DASHBOARD:        '/brand/dashboard',
+  BRAND_SEARCH:           '/brand/search',
+  BRAND_CAMPAIGNS:        '/brand/campaigns',
+  BRAND_COLLABORATIONS:   '/brand/collaborations',
+  BRAND_COLLAB_REQUEST:   '/brand/collab-request',
+  BRAND_MESSAGES:         '/brand/messages',
+  BRAND_ACTIVITY:         '/brand/activity',
+  BRAND_SETTINGS:         '/brand/settings',
+  BRAND_REMINDERS:        '/brand/reminders',
+  BRAND_NOTIFICATIONS:    '/brand/notifications',
+  BRAND_MY_PORTFOLIO:     '/brand/portfolio',
+
+  /* ── Admin ── */
+  ADMIN_LOGIN:          '/admin/login',
+  ADMIN_OTP:            '/admin/otp',
+  ADMIN_RESET:          '/admin/reset-password',
+  ADMIN_DASHBOARD:      '/admin/dashboard',
+  ADMIN_USERS:          '/admin/users',
+  ADMIN_CAMPAIGNS:      '/admin/campaigns',
+  ADMIN_CONTENT:        '/admin/content',
+  ADMIN_REPORTS:        '/admin/reports',
+  ADMIN_TRUST_SAFETY:   '/admin/trust-safety',
+  ADMIN_REVENUE:        '/admin/revenue-payments',
+  ADMIN_OPERATIONS:     '/admin/operations',
+  ADMIN_SETTINGS:       '/admin/settings',
+};

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CreConnect – Creator Brand Collaboration</title>
+    <meta name="description" content="Join a community where brands and creators collaborate seamlessly." />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('cc-theme');
+          var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0b0a12;
+        transition: opacity 0.4s ease;
+      }
+      html[data-theme="light"] #app-splash {
+        background: #ffffff;
+      }
+      #app-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-splash svg { width: 420px; height: 320px; max-width: 90vw; }
+      #splash-dark { display: flex; }
+      #splash-light { display: none; }
+      html[data-theme="light"] #splash-dark { display: none; }
+      html[data-theme="light"] #splash-light { display: flex; }
+    </style>
+  </head>
+  <body>
+    <div id="app-splash" aria-hidden="true">
+      <!-- Dark mode intro -->
+      <svg id="splash-dark" viewBox="-250 -175 500 380" font-family="Poppins, 'Segoe UI', system-ui, Arial, sans-serif">
+        <defs>
+          <radialGradient id="bgd" cx="0.5" cy="0.42" r="0.75"><stop offset="0" stop-color="#181530"/><stop offset="1" stop-color="#0B0A12"/></radialGradient>
+          <linearGradient id="whiteTube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.5" stop-color="#ECECF4"/><stop offset="1" stop-color="#CBCBDA"/></linearGradient>
+          <linearGradient id="vioTubeD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C2B4FF"/><stop offset="0.5" stop-color="#7C6CF0"/><stop offset="1" stop-color="#4E32AE"/></linearGradient>
+          <linearGradient id="chromeD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.30" stop-color="#D2D2E2"/><stop offset="0.55" stop-color="#9A9AB0"/><stop offset="0.78" stop-color="#E8E8F2"/><stop offset="1" stop-color="#A6A6BA"/></linearGradient>
+          <linearGradient id="cgradD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9D8BFF"/><stop offset="1" stop-color="#6C5CE7"/></linearGradient>
+          <linearGradient id="goldD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE8A3"/><stop offset="0.5" stop-color="#FFC93D"/><stop offset="1" stop-color="#FF9D2E"/></linearGradient>
+          <radialGradient id="flashD"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#FFE49A"/><stop offset="0.7" stop-color="#FFC53D" stop-opacity="0.55"/><stop offset="1" stop-color="#FFC53D" stop-opacity="0"/></radialGradient>
+          <filter id="bloomD" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="glowD" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.4"/></filter>
+          <clipPath id="weaveTopD"><circle cx="0" cy="-41" r="22"/></clipPath>
+
+          <g id="bmagD">
+            <path d="M 36 -32 L -10 -32 A 32 32 0 0 0 -10 32 L 36 32" fill="none" stroke="url(#whiteTube)" stroke-width="30" stroke-linecap="butt" stroke-linejoin="round"/>
+            <path d="M 36 -32 L -10 -32 A 32 32 0 0 0 -10 32 L 36 32" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="butt" stroke-linejoin="round" opacity="0.5"/>
+            <rect x="24" y="-47" width="27" height="30" rx="10" fill="url(#chromeD)"/><rect x="29" y="-44" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="51" cy="-32" rx="4.5" ry="13" fill="#F1F2F8"/>
+            <rect x="24" y="17" width="27" height="30" rx="10" fill="url(#chromeD)"/><rect x="29" y="20" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="51" cy="32" rx="4.5" ry="13" fill="#F1F2F8"/>
+          </g>
+          <g id="vmagD">
+            <path d="M -36 -32 L 10 -32 A 32 32 0 0 1 10 32 L -36 32" fill="none" stroke="url(#vioTubeD)" stroke-width="30" stroke-linecap="butt" stroke-linejoin="round"/>
+            <path d="M -36 -32 L 10 -32 A 32 32 0 0 1 10 32 L -36 32" fill="none" stroke="#D6CCFF" stroke-width="6" stroke-linecap="butt" stroke-linejoin="round" opacity="0.45"/>
+            <rect x="-51" y="-47" width="27" height="30" rx="10" fill="url(#chromeD)"/><rect x="-34" y="-44" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="-51" cy="-32" rx="4.5" ry="13" fill="#F1F2F8"/>
+            <rect x="-51" y="17" width="27" height="30" rx="10" fill="url(#chromeD)"/><rect x="-34" y="20" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="-51" cy="32" rx="4.5" ry="13" fill="#F1F2F8"/>
+          </g>
+        </defs>
+
+        <rect x="-250" y="-175" width="500" height="380" fill="url(#bgd)"/>
+
+        <g transform="translate(0,-6)">
+
+          <circle r="9" fill="url(#flashD)" opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.27;0.38;1" values="0;0;1;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.27;0.40;1" values="0.2 0.2;0.2 0.2;1 1;3.2 3.2;3.2 3.2"/>
+          </circle>
+
+          <g>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.26;0.31;1" values="1 1;1 1;1.04 1.04;1 1;1 1"/>
+
+            <g opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.04;0.27;0.33;1" values="0;1;1;0;0"/>
+              <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="spline"
+                keyTimes="0;0.05;0.25;0.30;1" keySplines="0.4 0 0.6 1; 0.6 0 1 0.4; 0.2 0 0.3 1; 0 0 1 1" values="-360 0; -320 0; -43 0; -47 0; -47 0"/>
+              <g opacity="0">
+                <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="discrete" keyTimes="0;0.10;0.125;0.15;0.175;0.20;0.225;0.25;1" values="0;1;0.5;1;0.4;1;0.7;0;0"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloomD)" opacity="0.85"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glowD)"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloomD)" opacity="0.85"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glowD)"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
+              <use href="#bmagD"/>
+            </g>
+
+            <g opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.04;0.27;0.33;1" values="0;1;1;0;0"/>
+              <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="spline"
+                keyTimes="0;0.05;0.25;0.30;1" keySplines="0.4 0 0.6 1; 0.6 0 1 0.4; 0.2 0 0.3 1; 0 0 1 1" values="360 0; 320 0; 43 0; 47 0; 47 0"/>
+              <g opacity="0">
+                <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="discrete" keyTimes="0;0.10;0.125;0.15;0.175;0.20;0.225;0.25;1" values="0;1;0.4;1;0.6;1;0.5;0;0"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloomD)" opacity="0.85"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glowD)"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloomD)" opacity="0.85"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glowD)"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
+              <use href="#vmagD"/>
+            </g>
+          </g>
+
+          <!-- C LOGO: white + violet -->
+          <g opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.27;0.34;1" values="0;0;1;1"/>
+            <g>
+              <animateTransform attributeName="transform" type="rotate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.36;0.56;1" values="0 38 0;0 38 0;-180 38 0;-180 38 0"/>
+              <path d="M -6.1 -34.5 A 56 56 0 1 1 -6.1 34.5" fill="none" stroke="url(#cgradD)" stroke-width="22" stroke-linecap="round"/>
+            </g>
+            <g>
+              <animateTransform attributeName="transform" type="rotate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.36;0.56;1" values="0 -38 0;0 -38 0;180 -38 0;180 -38 0"/>
+              <path d="M 6.1 -34.5 A 56 56 0 1 0 6.1 34.5" fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+            </g>
+            <g clip-path="url(#weaveTopD)" opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.54;0.62;1" values="0;0;1;1"/>
+              <path d="M 82.1 -34.5 A 56 56 0 1 0 82.1 34.5" fill="none" stroke="#0B0A12" stroke-width="32" stroke-linecap="round"/>
+              <path d="M 82.1 -34.5 A 56 56 0 1 0 82.1 34.5" fill="none" stroke="url(#cgradD)" stroke-width="22" stroke-linecap="round"/>
+            </g>
+          </g>
+
+          <g opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.29;0.42;1" values="0;0;1;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.42;1" values="0.2 0.2;0.2 0.2;2.2 2.2;2.2 2.2"/>
+            <g filter="url(#bloomD)" fill="url(#goldD)">
+              <circle cx="-14" cy="-16" r="3.4"/><circle cx="16" cy="-10" r="2.8"/><circle cx="-18" cy="8" r="3"/>
+              <circle cx="12" cy="16" r="3.4"/><circle cx="0" cy="-23" r="2.6"/><circle cx="4" cy="23" r="3"/>
+            </g>
+          </g>
+          <circle r="10" fill="none" stroke="url(#goldD)" stroke-width="5" opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.28;0.42;1" values="0;0;0.9;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.42;1" values="0.3 0.3;0.3 0.3;3.6 3.6;3.6 3.6"/>
+          </circle>
+        </g>
+
+        <g opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.66;0.80;1" values="0;0;1;1"/>
+          <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.66;0.80;1" values="0 16;0 16;0 0;0 0"/>
+          <text x="0" y="128" font-size="46" font-weight="700" letter-spacing="-1.5" text-anchor="middle">
+            <tspan fill="#F4F4FA">Cre</tspan><tspan fill="#9D8BFF">Connect</tspan>
+          </text>
+        </g>
+
+        <rect x="-70" y="160" width="140" height="4" rx="2" fill="#2A2740" opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.06;1" values="0;1;1"/>
+        </rect>
+        <rect x="-70" y="160" width="140" height="4" rx="2" fill="url(#cgradD)" opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.06;1" values="0;1;1"/>
+          <animateTransform attributeName="transform" type="scale" additive="sum" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;1" values="0 1;1 1"/>
+        </rect>
+      </svg>
+
+      <!-- Light mode intro -->
+      <svg id="splash-light" viewBox="-250 -175 500 380" font-family="Poppins, 'Segoe UI', system-ui, Arial, sans-serif">
+        <defs>
+          <linearGradient id="inkTube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3C3C5E"/><stop offset="0.5" stop-color="#18182E"/><stop offset="1" stop-color="#0C0C16"/></linearGradient>
+          <linearGradient id="vioTube" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B9AAFF"/><stop offset="0.5" stop-color="#6C5CE7"/><stop offset="1" stop-color="#4628A0"/></linearGradient>
+          <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.30" stop-color="#D2D2E2"/><stop offset="0.55" stop-color="#9A9AB0"/><stop offset="0.78" stop-color="#E8E8F2"/><stop offset="1" stop-color="#A6A6BA"/></linearGradient>
+          <linearGradient id="cgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8470FF"/><stop offset="1" stop-color="#5B3FE0"/></linearGradient>
+          <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE8A3"/><stop offset="0.5" stop-color="#FFC93D"/><stop offset="1" stop-color="#FF9D2E"/></linearGradient>
+          <radialGradient id="flash"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#FFE49A"/><stop offset="0.7" stop-color="#FFC53D" stop-opacity="0.55"/><stop offset="1" stop-color="#FFC53D" stop-opacity="0"/></radialGradient>
+          <filter id="bloom" x="-120%" y="-120%" width="340%" height="340%"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.4"/></filter>
+          <clipPath id="weaveTop"><circle cx="0" cy="-41" r="22"/></clipPath>
+
+          <g id="bmag">
+            <path d="M 36 -32 L -10 -32 A 32 32 0 0 0 -10 32 L 36 32" fill="none" stroke="url(#inkTube)" stroke-width="30" stroke-linecap="butt" stroke-linejoin="round"/>
+            <path d="M 36 -32 L -10 -32 A 32 32 0 0 0 -10 32 L 36 32" fill="none" stroke="#5A5A80" stroke-width="6" stroke-linecap="butt" stroke-linejoin="round" opacity="0.45"/>
+            <rect x="24" y="-47" width="27" height="30" rx="10" fill="url(#chrome)"/><rect x="29" y="-44" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="51" cy="-32" rx="4.5" ry="13" fill="#F1F2F8"/>
+            <rect x="24" y="17" width="27" height="30" rx="10" fill="url(#chrome)"/><rect x="29" y="20" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="51" cy="32" rx="4.5" ry="13" fill="#F1F2F8"/>
+          </g>
+          <g id="vmag">
+            <path d="M -36 -32 L 10 -32 A 32 32 0 0 1 10 32 L -36 32" fill="none" stroke="url(#vioTube)" stroke-width="30" stroke-linecap="butt" stroke-linejoin="round"/>
+            <path d="M -36 -32 L 10 -32 A 32 32 0 0 1 10 32 L -36 32" fill="none" stroke="#C9BDFF" stroke-width="6" stroke-linecap="butt" stroke-linejoin="round" opacity="0.45"/>
+            <rect x="-51" y="-47" width="27" height="30" rx="10" fill="url(#chrome)"/><rect x="-34" y="-44" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="-51" cy="-32" rx="4.5" ry="13" fill="#F1F2F8"/>
+            <rect x="-51" y="17" width="27" height="30" rx="10" fill="url(#chrome)"/><rect x="-34" y="20" width="5" height="24" rx="2.5" fill="#fff" opacity="0.5"/><ellipse cx="-51" cy="32" rx="4.5" ry="13" fill="#F1F2F8"/>
+          </g>
+        </defs>
+
+        <g transform="translate(0,-6)">
+
+          <circle r="9" fill="url(#flash)" opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.27;0.38;1" values="0;0;1;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.27;0.40;1" values="0.2 0.2;0.2 0.2;1 1;3.2 3.2;3.2 3.2"/>
+          </circle>
+
+          <!-- ===== MAGNETS (fly in, collide, then fade) ===== -->
+          <g>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.23;0.26;0.31;1" values="1 1;1 1;1.04 1.04;1 1;1 1"/>
+
+            <g opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.04;0.27;0.33;1" values="0;1;1;0;0"/>
+              <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="spline"
+                keyTimes="0;0.05;0.25;0.30;1" keySplines="0.4 0 0.6 1; 0.6 0 1 0.4; 0.2 0 0.3 1; 0 0 1 1" values="-360 0; -320 0; -43 0; -47 0; -47 0"/>
+              <g opacity="0">
+                <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="discrete" keyTimes="0;0.10;0.125;0.15;0.175;0.20;0.225;0.25;1" values="0;1;0.5;1;0.4;1;0.7;0;0"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloom)" opacity="0.85"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glow)"/>
+                <polyline points="50,-32 70,-40 62,-54 82,-62 74,-80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloom)" opacity="0.85"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glow)"/>
+                <polyline points="50,32 70,40 62,54 82,62 74,80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
+              <use href="#bmag"/>
+            </g>
+
+            <g opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.04;0.27;0.33;1" values="0;1;1;0;0"/>
+              <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="spline"
+                keyTimes="0;0.05;0.25;0.30;1" keySplines="0.4 0 0.6 1; 0.6 0 1 0.4; 0.2 0 0.3 1; 0 0 1 1" values="360 0; 320 0; 43 0; 47 0; 47 0"/>
+              <g opacity="0">
+                <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" calcMode="discrete" keyTimes="0;0.10;0.125;0.15;0.175;0.20;0.225;0.25;1" values="0;1;0.4;1;0.6;1;0.5;0;0"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloom)" opacity="0.85"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glow)"/>
+                <polyline points="-50,-32 -70,-40 -62,-54 -82,-62 -74,-80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FF9D2E" stroke-width="20" stroke-linejoin="round" stroke-linecap="round" filter="url(#bloom)" opacity="0.85"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FFC93D" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" filter="url(#glow)"/>
+                <polyline points="-50,32 -70,40 -62,54 -82,62 -74,80" fill="none" stroke="#FFF4D0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
+              <use href="#vmag"/>
+            </g>
+          </g>
+
+          <!-- ===== C LOGO (reform, flip to opposite directions, interlock) ===== -->
+          <g opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.27;0.34;1" values="0;0;1;1"/>
+            <g>
+              <animateTransform attributeName="transform" type="rotate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.36;0.56;1" values="0 38 0;0 38 0;-180 38 0;-180 38 0"/>
+              <path d="M -6.1 -34.5 A 56 56 0 1 1 -6.1 34.5" fill="none" stroke="url(#cgrad)" stroke-width="22" stroke-linecap="round"/>
+            </g>
+            <g>
+              <animateTransform attributeName="transform" type="rotate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.36;0.56;1" values="0 -38 0;0 -38 0;180 -38 0;180 -38 0"/>
+              <path d="M 6.1 -34.5 A 56 56 0 1 0 6.1 34.5" fill="none" stroke="#16162B" stroke-width="22" stroke-linecap="round"/>
+            </g>
+            <g clip-path="url(#weaveTop)" opacity="0">
+              <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.54;0.62;1" values="0;0;1;1"/>
+              <path d="M 82.1 -34.5 A 56 56 0 1 0 82.1 34.5" fill="none" stroke="#F6F3FF" stroke-width="32" stroke-linecap="round"/>
+              <path d="M 82.1 -34.5 A 56 56 0 1 0 82.1 34.5" fill="none" stroke="url(#cgrad)" stroke-width="22" stroke-linecap="round"/>
+            </g>
+          </g>
+
+          <!-- ember + shockwave at collision -->
+          <g opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.29;0.42;1" values="0;0;1;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.42;1" values="0.2 0.2;0.2 0.2;2.2 2.2;2.2 2.2"/>
+            <g filter="url(#bloom)" fill="url(#gold)">
+              <circle cx="-14" cy="-16" r="3.4"/><circle cx="16" cy="-10" r="2.8"/><circle cx="-18" cy="8" r="3"/>
+              <circle cx="12" cy="16" r="3.4"/><circle cx="0" cy="-23" r="2.6"/><circle cx="4" cy="23" r="3"/>
+            </g>
+          </g>
+          <circle r="10" fill="none" stroke="url(#gold)" stroke-width="5" opacity="0">
+            <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.28;0.42;1" values="0;0;0.9;0;0"/>
+            <animateTransform attributeName="transform" type="scale" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.25;0.42;1" values="0.3 0.3;0.3 0.3;3.6 3.6;3.6 3.6"/>
+          </circle>
+        </g>
+
+        <g opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.66;0.80;1" values="0;0;1;1"/>
+          <animateTransform attributeName="transform" type="translate" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.66;0.80;1" values="0 16;0 16;0 0;0 0"/>
+          <text x="0" y="128" font-size="46" font-weight="700" letter-spacing="-1.5" text-anchor="middle">
+            <tspan fill="#16162B">Cre</tspan><tspan fill="#6C5CE7">Connect</tspan>
+          </text>
+        </g>
+
+        <rect x="-70" y="160" width="140" height="4" rx="2" fill="#E7E3F5" opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.06;1" values="0;1;1"/>
+        </rect>
+        <rect x="-70" y="160" width="140" height="4" rx="2" fill="url(#cgrad)" opacity="0">
+          <animate attributeName="opacity" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.06;1" values="0;1;1"/>
+          <animateTransform attributeName="transform" type="scale" additive="sum" dur="4.8s" repeatCount="indefinite" fill="freeze" keyTimes="0;1" values="0 1;1 1"/>
+        </rect>
+      </svg>
+    </div>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          var splash = document.getElementById('app-splash');
+          if (!splash) return;
+          splash.classList.add('fade-out');
+          setTimeout(function () { splash.remove(); }, 400);
+        }, 4800);
+      });
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      window.addEventListener('error', function(e) {
+        var el = document.getElementById('js-error-display');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'js-error-display';
+          el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0b14;color:#f2f4fb;font-family:monospace;padding:2rem;overflow:auto;';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<h2 style="color:#f0445f;margin-bottom:1rem;">⚠ JavaScript Error</h2><pre style="background:#12131f;padding:1rem;border-radius:8px;white-space:pre-wrap;color:#f2f4fb;border:1px solid rgba(240,68,95,0.4);">' + e.message + '\n\n' + (e.error && e.error.stack ? e.error.stack : '') + '\nFile: ' + e.filename + ':' + e.lineno + '</pre>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var el = document.getElementById('js-error-display');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'js-error-display';
+          el.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0b14;color:#f2f4fb;font-family:monospace;padding:2rem;overflow:auto;';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = '<h2 style="color:#f0445f;margin-bottom:1rem;">⚠ Unhandled Promise Rejection</h2><pre style="background:#12131f;padding:1rem;border-radius:8px;white-space:pre-wrap;color:#f2f4fb;border:1px solid rgba(240,68,95,0.4);">' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '\n\n' + (e.reason && e.reason.stack ? e.reason.stack : '') + '</pre>';
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "creconnect-ai-recommender",
+  "version": "1.0.0",
+  "description": "Hybrid recommender engine for CreConnect — Content-Based + Collaborative Filtering + Context-Aware rules",
+  "main": "engine/index.js",
+  "scripts": {
+    "demo": "node demo.js"
+  },
+  "keywords": ["recommender", "collaborative-filtering", "content-based", "matrix-factorization"],
+  "license": "ISC"
+}
