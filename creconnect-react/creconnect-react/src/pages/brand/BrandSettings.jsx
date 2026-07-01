@@ -6,7 +6,7 @@ import { ROUTES } from '@/constants/routes';
 
 import { getBrandIntel, getBrandHealthScore } from '@/utils/mockBrandIntel';
 import {
-  getTeamMembers, getIntegrations, getApiKeys, getWebhooks, getAuditLog,
+  getTeamMembers, getIntegrations, getApiKeys, getWebhooks,
   getSubscription, getInvoices, getPaymentMethods, getFinancialSummary,
   getSecurityCenter, getWorkspaceAnalytics, getReputationScores, getProfileCompletion,
 } from '@/utils/mockBrandSettings';
@@ -30,7 +30,6 @@ import SecuritySection from '@/components/brandSettings/sections/SecuritySection
 import AnalyticsSection from '@/components/brandSettings/sections/AnalyticsSection';
 import BrandingSection from '@/components/brandSettings/sections/BrandingSection';
 import BillingSection from '@/components/brandSettings/sections/BillingSection';
-import AuditLogSection from '@/components/brandSettings/sections/AuditLogSection';
 import AutomationSection from '@/components/brandSettings/sections/AutomationSection';
 import DangerZoneSection from '@/components/brandSettings/sections/DangerZoneSection';
 import VerificationCenter from '@/components/verification/VerificationCenter';
@@ -53,8 +52,7 @@ const SECTIONS = [
   { id: 'billing', icon: '💎', label: 'Subscription & Billing' },
   { id: 'verification', icon: '🛡️', label: 'Verification Center' },
   { id: 'automation', icon: '⚡', label: 'Automation Rules' },
-  { id: 'audit-log', icon: '📜', label: 'Audit Logs' },
-  { id: 'danger-zone', icon: '⚠️', label: 'Danger Zone' },
+  { id: 'danger-zone', icon: '⬇', label: 'Export Data' },
 ];
 
 function buildFormState(p = {}) {
@@ -201,8 +199,7 @@ export default function BrandSettings() {
   const integrations = useMemo(() => getIntegrations(brand ?? {}), [brand]);
   const apiKeys = useMemo(() => getApiKeys(brand ?? {}), [brand]);
   const webhooks = useMemo(() => getWebhooks(brand ?? {}), [brand]);
-  const auditEntries = useMemo(() => getAuditLog(brand ?? {}), [brand]);
-  const subscription = useMemo(() => getSubscription(brand ?? {}, intel), [brand, intel]);
+const subscription = useMemo(() => getSubscription(brand ?? {}, intel), [brand, intel]);
   const invoices = useMemo(() => getInvoices(brand ?? {}, subscription.plan), [brand, subscription]);
   const paymentMethods = useMemo(() => getPaymentMethods(brand ?? {}), [brand]);
   const financials = useMemo(() => getFinancialSummary(brand ?? {}, intel), [brand, intel]);
@@ -440,7 +437,6 @@ export default function BrandSettings() {
                 onInvite={handleInvite}
                 onRoleChange={handleRoleChange}
                 onRemove={handleRemoveMember}
-                onViewActivity={() => handleNavigate('audit-log')}
               />
             </SettingsSectionCard>
           </div>
@@ -535,14 +531,8 @@ export default function BrandSettings() {
             </SettingsSectionCard>
           </div>
 
-          <div ref={(el) => { sectionRefs.current['audit-log'] = el; }}>
-            <SettingsSectionCard id="audit-log" icon="📜" title="Audit Logs" subtitle="Workspace activity timeline" defaultOpen={false}>
-              <AuditLogSection entries={auditEntries} />
-            </SettingsSectionCard>
-          </div>
-
           <div ref={(el) => { sectionRefs.current['danger-zone'] = el; }}>
-            <SettingsSectionCard id="danger-zone" icon="⚠️" title="Danger Zone" subtitle="Irreversible workspace actions" defaultOpen={false}>
+            <SettingsSectionCard id="danger-zone" icon="⬇" title="Export Data" subtitle="Download your workspace data" defaultOpen={false}>
               <DangerZoneSection onAction={handleDangerAction} />
             </SettingsSectionCard>
           </div>

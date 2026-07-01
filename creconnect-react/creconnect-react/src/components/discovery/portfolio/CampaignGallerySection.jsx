@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import { formatFollowers } from '@/utils/formatters';
 
 export default function CampaignGallerySection({ gallery }) {
+  if (!gallery) return null;
   return (
     <div className="grid sm:grid-cols-2 gap-3">
       {gallery.map((g) => (

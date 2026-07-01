@@ -185,7 +185,7 @@ export default function CollabRequest() {
       const countType = (types) =>
         deliverables.filter((d) => types.includes(d.type)).reduce((s, d) => s + (Number(d.quantity) || 1), 0);
 
-      await campaignsApi.create({
+      const { data: campaignData } = await campaignsApi.create({
         title:         proposal.title       || 'Untitled Campaign',
         description:   proposal.description || proposal.goals || 'Campaign created from outreach proposal',
         objective:     OBJECTIVE_MAP[proposal.objective]   || 'AWARENESS',
@@ -205,6 +205,18 @@ export default function CollabRequest() {
         deadline:      proposal.timeline?.completion  || undefined,
         status:        'PUBLISHED',
       });
+
+      // Send real invitations to each creator via the backend
+      const campaignId = campaignData?.id ?? campaignData?.data?.id;
+      if (campaignId) {
+        const results = await Promise.allSettled(
+          targets.map((creator) => campaignsApi.invite(campaignId, creatorId(creator)))
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) {
+          toast.warning(`${targets.length - failed} invitation${targets.length - failed !== 1 ? 's' : ''} sent, ${failed} failed.`);
+        }
+      }
 
       // Advance each shortlisted creator from Draft → Sent in the local pipeline
       const overrides = {};

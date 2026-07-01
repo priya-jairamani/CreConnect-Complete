@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/api/auth.api';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
+import PasswordStrength from '@/components/common/PasswordStrength';
 
 const BASE_URL    = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 const BACKEND_URL = BASE_URL.replace('/api/v1', '');
@@ -72,6 +73,7 @@ export default function CreatorSignupPage() {
           <Input label="Username" name="username" value={values.username} onChange={handleChange} placeholder="@yourhandle" required />
           <Input label="Email"    name="email"    type="email" value={values.email} onChange={handleChange} placeholder="you@example.com" required />
           <Input label="Password" name="password" type="password" value={values.password} onChange={handleChange} placeholder="Min 8 characters" required />
+          <PasswordStrength password={values.password} />
 
           <Button type="submit" variant="primary" size="full" disabled={!isValid} isLoading={isLoading}>
             Create account →

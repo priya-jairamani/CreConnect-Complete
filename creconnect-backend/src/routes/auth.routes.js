@@ -246,6 +246,26 @@ router.post(
   ctrl.resetPassword
 );
 
+router.post(
+  '/check-old-password',
+  authLimiter,
+  [body('email').isEmail(), body('oldPassword').notEmpty()],
+  validate,
+  ctrl.checkOldPasswordSimilarity
+);
+
+router.post(
+  '/reset-password-old',
+  authLimiter,
+  [
+    body('email').isEmail(),
+    body('oldPassword').notEmpty(),
+    body('newPassword').isLength({ min: 8 }),
+  ],
+  validate,
+  ctrl.resetWithOldPassword
+);
+
 /**
  * @swagger
  * /auth/send-otp:

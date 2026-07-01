@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useCopy } from '@/hooks/useCopy';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
@@ -65,18 +66,10 @@ const SECTION_FIELDS = {
 
 /* ─── Public profile link component ─────────────────────────────────── */
 function PublicProfileLink({ profileUrl, displayName, onShareModal }) {
-  const [copied,     setCopied]     = useState(false);
+  const { copy, copied } = useCopy();
   const [linkClicks, setLinkClicks] = useState(() => {
     try { return Number(localStorage.getItem('cc-profile-link-clicks') ?? 0); } catch { return 0; }
   });
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(profileUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch { /* noop */ }
-  };
 
   const prettyUrl = profileUrl
     ? profileUrl.replace(/^https?:\/\/[^/]+/, 'creconnect.com')
@@ -96,8 +89,8 @@ function PublicProfileLink({ profileUrl, displayName, onShareModal }) {
       <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <span className="flex-1 text-fg text-sm font-medium truncate" title={profileUrl}>{prettyUrl}</span>
         <button
-          onClick={handleCopy}
-          className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+          onClick={() => copy(profileUrl)}
+          className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
           style={copied
             ? { background: 'rgba(22,179,100,0.15)', color: '#16b364', border: '1px solid rgba(22,179,100,0.3)' }
             : { background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }

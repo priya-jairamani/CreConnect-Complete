@@ -527,7 +527,7 @@ export function getOpportunityOverview(brands = [], creatorNiches = []) {
   return {
     recommendedBrands,
     activeCampaigns,
-    openInvitations: Math.min(brands.length, Math.max(1, Math.round(brands.length * 0.12))),
+    openInvitations: 0, // filled in by the caller with real data
     matchingNiche,
     highBudget,
     trending,

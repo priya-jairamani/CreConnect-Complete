@@ -3,15 +3,11 @@ import Button from '@/components/common/Button';
 
 const ACTIONS = [
   { key: 'export', icon: '⬇', title: 'Export Workspace Data', description: 'Download all your campaigns, creator data, and analytics as a ZIP archive.', variant: 'secondary', cta: 'Export Data' },
-  { key: 'transfer', icon: '🔄', title: 'Transfer Ownership', description: 'Transfer this workspace to another team member. You will lose Owner access.', variant: 'secondary', cta: 'Transfer Ownership' },
-  { key: 'archive', icon: '📦', title: 'Archive Workspace', description: 'Temporarily disable this workspace. Your data is preserved and can be restored later.', variant: 'danger', cta: 'Archive Workspace' },
-  { key: 'delete', icon: '🗑', title: 'Delete Workspace', description: 'Permanently delete this workspace and all associated data. This cannot be undone.', variant: 'danger', cta: 'Delete Workspace' },
 ];
 
 export default function DangerZoneSection({ onAction }) {
   return (
     <div className="space-y-3">
-      <p className="text-fg-muted text-sm">These actions are irreversible or affect your entire workspace. Proceed with caution.</p>
       {ACTIONS.map((a) => (
         <div
           key={a.key}

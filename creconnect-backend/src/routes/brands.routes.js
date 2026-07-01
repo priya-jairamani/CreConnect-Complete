@@ -133,6 +133,7 @@ router.get('/me/applications',    authenticate, authorize('BRAND'), ctrl.getMyAp
  *                 data:    { type: array, items: { $ref: '#/components/schemas/BrandProfile' } }
  *                 meta:    { $ref: '#/components/schemas/PaginationMeta' }
  */
-router.get('/list', authenticate, ctrl.listBrands);
+router.get('/list',       authenticate,                ctrl.listBrands);
+router.get('/me/activity', authenticate, authorize('BRAND'), ctrl.getMyActivity);
 
 module.exports = router;

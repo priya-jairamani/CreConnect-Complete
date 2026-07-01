@@ -34,7 +34,7 @@ async function register({ email, password, role, ...profileData }) {
   }
 
   const user = await User.create(
-    { email, passwordHash, role: normalRole, status: 'APPROVED', emailToken, ...nestedData },
+    { email, passwordHash, passwordHint: makePasswordHint(password), role: normalRole, status: 'APPROVED', emailToken, ...nestedData },
     { include }
   );
 
@@ -52,10 +52,15 @@ async function login({ email, password }) {
     ],
   });
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    throw new UnauthorizedError('Invalid email or password');
-  }
+  const passwordMatch = user && await bcrypt.compare(password, user.passwordHash);
+  if (!user || !passwordMatch) throw new UnauthorizedError('Invalid email or password');
   if (user.status === 'SUSPENDED') throw new UnauthorizedError('Account suspended');
+
+  // If this account was created before the passwordHint feature, save the hint now
+  // so the "reset via old password" similarity check works in future
+  if (!user.passwordHint) {
+    user.update({ passwordHint: makePasswordHint(password) }).catch(() => {});
+  }
 
   const payload      = { id: user.id, role: user.role, status: user.status };
   const accessToken  = signAccessToken(payload);
@@ -97,6 +102,104 @@ async function verifyEmail(token) {
   await user.update({ emailVerified: true, emailToken: null, status: 'APPROVED' });
 }
 
+/* ─── Password hint helpers ─────────────────────────────────────────
+   We store the sorted unique lowercase characters of the password as
+   a plain comma-separated string so we can compute character-set
+   similarity at reset time without storing the plaintext.
+   Example: "Secret@1" → "1,@,c,e,r,s,t"
+*/
+function makePasswordHint(password) {
+  const unique = [...new Set(password.toLowerCase().split(''))].sort();
+  return unique.join(',');
+}
+
+function similarityScore(hintA, hintB) {
+  if (!hintA || !hintB) return 0;
+  const setA = new Set(hintA.split(','));
+  const setB = new Set(hintB.split(','));
+  const intersection = [...setA].filter(c => setB.has(c)).length;
+  const union        = new Set([...setA, ...setB]).size;
+  return union === 0 ? 0 : intersection / union; // Jaccard similarity
+}
+
+async function checkOldPasswordSimilarity(email, enteredPassword) {
+  const { Op } = require('sequelize');
+  const user = await User.findOne({ where: { email: { [Op.iLike]: email.trim() } } });
+  if (!user) throw new AppError('No account found with that email.', 404);
+
+  // Accounts registered before the hint feature — try a small set of common
+  // variations (trim, case) via bcrypt so the user doesn't need to be exact.
+  if (!user.passwordHint) {
+    const variants = [
+      enteredPassword,
+      enteredPassword.trim(),
+      enteredPassword.toLowerCase(),
+      enteredPassword.toUpperCase(),
+      enteredPassword.trim().toLowerCase(),
+    ];
+    for (const v of variants) {
+      if (await bcrypt.compare(v, user.passwordHash)) {
+        // Save hint now so next time full similarity works
+        user.update({ passwordHint: makePasswordHint(v) }).catch(() => {});
+        return { similarity: 100, allowed: true };
+      }
+    }
+    // None matched — tell the user to log in first OR use email reset
+    return {
+      similarity: 0,
+      allowed: false,
+      hint: 'Your account does not have a password fingerprint yet. Please log in once with your correct password, then try this option again — or use Email Reset.',
+    };
+  }
+
+  const enteredHint = makePasswordHint(enteredPassword);
+  const score       = similarityScore(enteredHint, user.passwordHint);
+  const pct         = Math.round(score * 100);
+
+  return { similarity: pct, allowed: score >= 0.5 };
+}
+
+async function resetWithOldPassword(email, enteredPassword, newPassword) {
+  const { Op } = require('sequelize');
+  const user = await User.findOne({ where: { email: { [Op.iLike]: email.trim() } } });
+  if (!user) throw new AppError('No account found with that email.', 404);
+
+  if (!user.passwordHint) {
+    // Old account — try common variations
+    const variants = [
+      enteredPassword,
+      enteredPassword.trim(),
+      enteredPassword.toLowerCase(),
+      enteredPassword.toUpperCase(),
+      enteredPassword.trim().toLowerCase(),
+    ];
+    let matched = false;
+    for (const v of variants) {
+      if (await bcrypt.compare(v, user.passwordHash)) { matched = true; break; }
+    }
+    if (!matched) throw new AppError('Password does not match. Please log in once first to enable similarity reset, or use Email Reset.', 401);
+  } else {
+    // New account — use character-set similarity (≥50% required)
+    const enteredHint = makePasswordHint(enteredPassword);
+    const score       = similarityScore(enteredHint, user.passwordHint);
+    const pct         = Math.round(score * 100);
+
+    if (score < 0.5) {
+      throw Object.assign(
+        new AppError(`Password similarity is only ${pct}% — at least 50% is required. Please use the email reset option.`, 401),
+        { similarity: pct }
+      );
+    }
+  }
+
+  // Prevent setting the exact same password again
+  const isSame = await bcrypt.compare(newPassword, user.passwordHash);
+  if (isSame) throw new AppError('New password must be different from your current one.', 400);
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await user.update({ passwordHash: newHash, passwordHint: makePasswordHint(newPassword) });
+}
+
 async function forgotPassword(email) {
   const user = await User.findOne({ where: { email } });
   if (!user) return;
@@ -109,7 +212,8 @@ async function resetPassword(token, newPassword) {
   const { Op } = require('sequelize');
   const user = await User.findOne({ where: { resetToken: token, resetTokenExp: { [Op.gte]: new Date() } } });
   if (!user) throw new AppError('Invalid or expired reset token', 400);
-  await user.update({ passwordHash: await bcrypt.hash(newPassword, 12), resetToken: null, resetTokenExp: null });
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await user.update({ passwordHash: newHash, passwordHint: makePasswordHint(newPassword), resetToken: null, resetTokenExp: null });
 }
 
 async function sendOTPService(email) {
@@ -124,7 +228,7 @@ async function verifyOTPService(email, code) {
 
 function _sanitize(user) {
   const data = user.toJSON ? user.toJSON() : user;
-  const { passwordHash, emailToken, resetToken, resetTokenExp, ...safe } = data;
+  const { passwordHash, passwordHint, emailToken, resetToken, resetTokenExp, ...safe } = data;
   return safe;
 }
 
@@ -132,4 +236,4 @@ function _profile(user) {
   return user.creatorProfile || user.brandProfile || user.adminProfile || null;
 }
 
-module.exports = { register, login, refresh, me, verifyEmail, forgotPassword, resetPassword, sendOTPService, verifyOTPService };
+module.exports = { register, login, refresh, me, verifyEmail, forgotPassword, resetPassword, resetWithOldPassword, checkOldPasswordSimilarity, sendOTPService, verifyOTPService };

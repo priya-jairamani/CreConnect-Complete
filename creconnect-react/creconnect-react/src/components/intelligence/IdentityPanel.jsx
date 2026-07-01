@@ -1,4 +1,6 @@
 import PropTypes from 'prop-types';
+import { useCopy } from '@/hooks/useCopy';
+import { resolveMediaUrl } from '@/utils/media';
 import Input from '@/components/common/Input';
 import Badge from '@/components/common/Badge';
 import ChipMultiSelect from '@/components/common/ChipMultiSelect';
@@ -11,6 +13,7 @@ export default function IdentityPanel({
   avatarUrl, isUploading, uploadError, onPhotoChange, fileInputRef,
   readOnly,
 }) {
+  const { copy, copied } = useCopy();
   const set = (field) => (e) => onChange(field, e.target.value);
 
   /* Derive years on platform */
@@ -28,7 +31,7 @@ export default function IdentityPanel({
       <div className="flex flex-col sm:flex-row sm:items-center gap-5">
         <div className="flex items-center gap-4 flex-shrink-0">
           {avatarUrl ? (
-            <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-2xl object-cover" />
+            <img src={resolveMediaUrl(avatarUrl)} alt="Profile" className="w-20 h-20 rounded-2xl object-cover" />
           ) : (
             <div
               className="w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
@@ -80,11 +83,14 @@ export default function IdentityPanel({
             <input className="input-base w-full" value={profileUrl} readOnly />
             <button
               type="button"
-              onClick={() => navigator.clipboard?.writeText(profileUrl)}
-              className="px-3 py-2 rounded-xl text-xs font-medium flex-shrink-0"
-              style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
+              onClick={() => copy(profileUrl)}
+              className="px-3 py-2 rounded-xl text-xs font-medium flex-shrink-0 transition-all"
+              style={copied
+                ? { background: 'rgba(22,179,100,0.15)', color: '#16b364', border: '1px solid rgba(22,179,100,0.3)' }
+                : { background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }
+              }
             >
-              Copy
+              {copied ? '✓ Copied' : 'Copy'}
             </button>
           </div>
         </div>

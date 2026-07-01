@@ -3,6 +3,7 @@ import Avatar from '@/components/common/Avatar';
 import Badge from '@/components/common/Badge';
 
 export default function SuccessStoriesSection({ stories }) {
+  if (!stories) return null;
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {stories.map((s) => (

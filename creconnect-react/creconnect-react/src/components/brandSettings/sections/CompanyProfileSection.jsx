@@ -5,6 +5,7 @@ import Avatar from '@/components/common/Avatar';
 import Button from '@/components/common/Button';
 import SocialRow, { SOCIAL_PLATFORM_FIELDS } from '@/components/common/SocialRow';
 import { uploadApi } from '@/api/upload.api';
+import { resolveMediaUrl } from '@/utils/media';
 
 const COMPANY_SIZES = ['Startup (1-10)', 'Growing (11-50)', 'Mid-size (51-200)', 'Enterprise (200+)'];
 const BRAND_COLORS  = ['#6d5cff', '#16b364', '#f5a623', '#f0445f', '#3aa0ff', '#a855f7', '#ec4899', '#14b8a6'];
@@ -135,7 +136,7 @@ export default function CompanyProfileSection({ values, onChange }) {
             {/* Preview strip */}
             <div className="relative h-24 w-full overflow-hidden">
               {values.bannerUrl ? (
-                <img src={values.bannerUrl} alt="Banner preview" className="w-full h-full object-cover" />
+                <img src={resolveMediaUrl(values.bannerUrl)} alt="Banner preview" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full" style={{ background: 'linear-gradient(135deg, #857fff 0%, #4c2dd1 100%)' }} />
               )}

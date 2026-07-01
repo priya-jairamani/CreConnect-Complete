@@ -28,6 +28,7 @@ function HeatmapChart({ title, data, color }) {
 HeatmapChart.propTypes = { title: PropTypes.string.isRequired, data: PropTypes.array.isRequired, color: PropTypes.string.isRequired };
 
 export default function PartnershipHeatmapSection({ heatmap }) {
+  if (!heatmap) return null;
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <HeatmapChart title="Best-Performing Niches" data={heatmap.niches} color="#857fff" />

@@ -12,13 +12,15 @@ import { useToast } from '@/hooks/useToast';
 const STATUS_TABS = ['all', 'DRAFT', 'PUBLISHED', 'COMPLETED', 'PAUSED'];
 
 export default function Campaigns() {
-  const { createCampaign } = useCampaignContext();
+  const { createCampaign, updateCampaign } = useCampaignContext();
   const toast = useToast();
   const [campaigns,        setCampaigns]        = useState([]);
   const [isLoading,        setIsLoading]        = useState(true);
   const [tab,              setTab]              = useState('all');
   const [showWizard,       setShowWizard]       = useState(false);
   const [isCreating,       setIsCreating]       = useState(false);
+  const [isSavingDraft,    setIsSavingDraft]    = useState(false);
+  const [editCampaign,     setEditCampaign]     = useState(null); // draft being edited
   const [detailCampaign,   setDetailCampaign]   = useState(null);
 
   const load = useCallback(async () => {
@@ -50,6 +52,39 @@ export default function Campaigns() {
       toast.error(err?.response?.data?.message || 'Failed to create campaign.');
     }
     setIsCreating(false);
+  };
+
+  const handleSaveDraft = async (payload) => {
+    setIsSavingDraft(true);
+    try {
+      const draft = await createCampaign({ ...payload, status: 'DRAFT' });
+      setCampaigns((prev) => [draft, ...prev]);
+      toast.success('Draft saved — you can finish it anytime.');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not save draft.');
+    }
+    setIsSavingDraft(false);
+  };
+
+  const handleUpdateCampaign = async (id, payload) => {
+    setIsCreating(true);
+    try {
+      const { data } = await updateCampaign(id, payload);
+      const updated = data?.data ?? data;
+      setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, ...updated } : c));
+      setShowWizard(false);
+      setEditCampaign(null);
+      toast.success(payload.status === 'PUBLISHED' ? 'Campaign published!' : 'Draft updated.');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Could not update campaign.');
+    }
+    setIsCreating(false);
+  };
+
+  const openEditWizard = (campaign) => {
+    setEditCampaign(campaign);
+    setDetailCampaign(null); // close drawer if open
+    setShowWizard(true);
   };
 
   return (
@@ -84,11 +119,21 @@ export default function Campaigns() {
             }
           >
             {t === 'all' ? 'All' : t.charAt(0) + t.slice(1).toLowerCase()}
-            {t !== 'all' && (
-              <span className="ml-1.5 text-[10px] opacity-60">
-                {campaigns.filter(c => c.status?.toUpperCase() === t).length}
-              </span>
-            )}
+            {t !== 'all' && (() => {
+              const count = campaigns.filter(c => c.status?.toUpperCase() === t).length;
+              if (!count) return null;
+              return (
+                <span
+                  className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                  style={t === 'DRAFT' && tab !== t
+                    ? { background: 'rgba(234,179,8,0.2)', color: '#eab308' }
+                    : { opacity: 0.7 }
+                  }
+                >
+                  {count}
+                </span>
+              );
+            })()}
           </button>
         ))}
       </div>
@@ -108,15 +153,24 @@ export default function Campaigns() {
       ) : (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((c) => (
-            <CampaignCard key={c.id} campaign={c} onViewDetails={setDetailCampaign} />
+            <CampaignCard
+              key={c.id}
+              campaign={c}
+              onViewDetails={setDetailCampaign}
+              onEdit={openEditWizard}
+            />
           ))}
         </div>
       )}
 
       <CampaignWizard
         isOpen={showWizard}
-        onClose={() => setShowWizard(false)}
+        onClose={() => { setShowWizard(false); setEditCampaign(null); }}
         onSubmit={handleCreate}
+        onSaveDraft={handleSaveDraft}
+        onUpdate={handleUpdateCampaign}
+        editCampaign={editCampaign}
+        isSavingDraft={isSavingDraft}
         isSubmitting={isCreating}
       />
 
@@ -124,6 +178,7 @@ export default function Campaigns() {
         campaign={detailCampaign}
         isOpen={!!detailCampaign}
         onClose={() => setDetailCampaign(null)}
+        onEditDraft={openEditWizard}
         onUpdate={(updated) => {
           setCampaigns((prev) => prev.map((c) => c.id === updated.id ? { ...c, ...updated } : c));
           setDetailCampaign((prev) => prev ? { ...prev, ...updated } : prev);

@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
     emailToken:    { type: DataTypes.STRING },
     resetToken:    { type: DataTypes.STRING },
     resetTokenExp: { type: DataTypes.DATE },
+    passwordHint:  { type: DataTypes.TEXT, defaultValue: null }, // sorted unique chars for similarity reset
   }, {
     tableName: 'users',
     timestamps: true,

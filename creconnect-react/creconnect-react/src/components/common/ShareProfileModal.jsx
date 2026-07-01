@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
+import { useCopy } from '@/hooks/useCopy';
 import Modal from '@/components/common/Modal';
 import { seededRandom } from '@/utils/mockAnalytics';
 
@@ -104,23 +105,17 @@ const SHARE_CHANNELS = [
 ];
 
 export default function ShareProfileModal({ isOpen, onClose, profileUrl, displayName }) {
-  const [copied,      setCopied]      = useState(false);
-  const [linkClicks,  setLinkClicks]  = useState(() => {
+  const { copy, copied } = useCopy();
+  const [linkClicks, setLinkClicks] = useState(() => {
     try { return Number(localStorage.getItem('cc-profile-link-clicks') ?? 0); } catch { return 0; }
   });
   const [shareMsg, setShareMsg] = useState('');
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(profileUrl);
-      setCopied(true);
-      const next = linkClicks + 1;
-      setLinkClicks(next);
-      try { localStorage.setItem('cc-profile-link-clicks', String(next)); } catch { /* noop */ }
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      /* fallback — select the text */
-    }
+  const handleCopy = () => {
+    copy(profileUrl);
+    const next = linkClicks + 1;
+    setLinkClicks(next);
+    try { localStorage.setItem('cc-profile-link-clicks', String(next)); } catch { /* noop */ }
   };
 
   const handleShare = (channel) => {
@@ -234,15 +229,20 @@ export default function ShareProfileModal({ isOpen, onClose, profileUrl, display
             <button
               onClick={handleCopy}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+              style={copied
+                ? { background: 'rgba(22,179,100,0.1)', border: '1px solid rgba(22,179,100,0.3)' }
+                : { background: 'var(--surface-2)', border: '1px solid var(--border)' }
+              }
             >
               <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-base"
-                style={{ background: 'var(--brand-500)', color: '#fff' }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-all"
+                style={{ background: copied ? '#16b364' : 'var(--brand-500)', color: '#fff' }}
               >
-                ⎘
+                {copied ? '✓' : '⎘'}
               </span>
-              <span className="text-[10px] text-fg-muted font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
+              <span className="text-[10px] font-medium transition-colors" style={{ color: copied ? '#16b364' : 'var(--fg-muted)' }}>
+                {copied ? 'Copied!' : 'Copy Link'}
+              </span>
             </button>
           </div>
         </div>

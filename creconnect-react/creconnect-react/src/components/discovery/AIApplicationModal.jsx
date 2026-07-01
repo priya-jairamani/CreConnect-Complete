@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
 import { generateApplicationPitch } from '@/utils/aiApplicationGenerator';
-import { useToast } from '@/hooks/useToast';
+import { useCopy } from '@/hooks/useCopy';
 
 export default function AIApplicationModal({
   brand, profile, creatorNiches, isOpen, onClose, onApply, isApplying, applyState,
 }) {
-  const toast = useToast();
+  const { copy, copied } = useCopy();
   const [variant, setVariant] = useState(0);
   const [text, setText] = useState('');
 
@@ -22,11 +22,6 @@ export default function AIApplicationModal({
 
   const handleRegenerate = () => setVariant((v) => v + 1);
 
-  const handleCopy = () => {
-    navigator.clipboard?.writeText(text);
-    toast.success('Pitch copied to clipboard');
-  };
-
   return (
     <Modal
       isOpen={isOpen}
@@ -39,7 +34,9 @@ export default function AIApplicationModal({
           <Button variant="primary" size="sm" isLoading={isApplying} disabled={applyState === 'done'} onClick={() => onApply(brand)}>
             {applyState === 'done' ? '✓ Applied' : 'Apply Now'}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy}>📋 Copy Pitch</Button>
+          <Button variant="outline" size="sm" onClick={() => copy(text)}
+            style={copied ? { background: 'rgba(22,179,100,0.12)', color: '#16b364', borderColor: 'rgba(22,179,100,0.35)' } : {}}
+          >{copied ? '✓ Copied!' : '📋 Copy Pitch'}</Button>
           <Button variant="ghost" size="sm" onClick={handleRegenerate}>🔄 Regenerate</Button>
         </div>
       }

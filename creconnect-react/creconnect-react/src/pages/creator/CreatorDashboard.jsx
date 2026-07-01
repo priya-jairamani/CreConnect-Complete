@@ -10,6 +10,7 @@ import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import AnimatedCounter from '@/components/common/AnimatedCounter';
 import { analyticsApi } from '@/api/analytics.api';
+import { campaignsApi } from '@/api/campaigns.api';
 import { formatFollowers } from '@/utils/formatters';
 
 function BarChart({ data = [], color = '#6d5cff' }) {
@@ -35,6 +36,24 @@ function BarChart({ data = [], color = '#6d5cff' }) {
 export default function CreatorDashboard() {
   const navigate = useNavigate();
   const { offers, fetchOffers, withdrawApplication } = useCampaignContext();
+
+  const handleAccept = async (offer) => {
+    try {
+      await campaignsApi.respondToInvitation(offer.id, 'accept');
+      fetchOffers();
+    } catch (err) {
+      console.error('Accept failed', err);
+    }
+  };
+
+  const handleDecline = async (offer) => {
+    try {
+      await campaignsApi.respondToInvitation(offer.id, 'reject');
+      fetchOffers();
+    } catch (err) {
+      console.error('Decline failed', err);
+    }
+  };
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -149,7 +168,12 @@ export default function CreatorDashboard() {
               <OfferCard
                 key={offer.id}
                 offer={offer}
-                onWithdraw={() => withdrawApplication(offer.id)}
+                onWithdraw={offer.status === 'INVITED'
+                  ? () => handleDecline(offer)      // for invitations, "Withdraw" = decline
+                  : () => withdrawApplication(offer.id) // for own applications, actually withdraw
+                }
+                onAccept={handleAccept}
+                onDecline={handleDecline}
               />
             ))}
           </div>

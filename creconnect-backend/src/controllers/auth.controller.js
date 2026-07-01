@@ -68,4 +68,30 @@ const verifyOTP = async (req, res, next) => {
 
 const health = (_req, res) => ok(res, { status: 'ok', timestamp: new Date().toISOString() });
 
-module.exports = { register, login, logout, refresh, me, verifyEmail, forgotPassword, resetPassword, sendOTP, verifyOTP, health };
+const checkOldPasswordSimilarity = async (req, res, next) => {
+  try {
+    const { email, oldPassword } = req.body;
+    const result = await authSvc.checkOldPasswordSimilarity(email, oldPassword);
+    ok(res, result, result.allowed ? 'Similarity check passed' : 'Similarity too low');
+  } catch (err) { next(err); }
+};
+
+const resetWithOldPassword = async (req, res, next) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+    await authSvc.resetWithOldPassword(email, oldPassword, newPassword);
+    ok(res, {}, 'Password updated successfully');
+  } catch (err) {
+    // Attach similarity score to response if available
+    if (err.similarity !== undefined) {
+      return res.status(err.statusCode || 401).json({
+        success: false,
+        message: err.message,
+        similarity: err.similarity,
+      });
+    }
+    next(err);
+  }
+};
+
+module.exports = { register, login, logout, refresh, me, verifyEmail, forgotPassword, resetPassword, resetWithOldPassword, checkOldPasswordSimilarity, sendOTP, verifyOTP, health };

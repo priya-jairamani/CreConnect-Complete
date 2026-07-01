@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import ScoreRing from '@/components/common/ScoreRing';
 
 export default function BrandHealthScoreSection({ health }) {
+  if (!health) return null;
   const items = [
     { key: 'overall', label: 'Overall Health', value: health.overall, size: 80 },
     { key: 'growth', label: 'Growth Score', value: health.growthScore },

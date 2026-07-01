@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Modal from '@/components/common/Modal';
 import Button from '@/components/common/Button';
@@ -52,6 +52,12 @@ const initialForm = {
   creatorSizeMax: 250_000,
   targetLocation: 'Lahore',
 };
+
+const DRAFT_KEY = 'cc-campaign-draft';
+
+function readDraft() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { return null; }
+}
 
 function toggleArr(arr, v) {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
@@ -113,12 +119,71 @@ function Field({ label, children, hint }) {
 }
 Field.propTypes = { label: PropTypes.string.isRequired, children: PropTypes.node.isRequired, hint: PropTypes.string };
 
+/* ─── helpers: map a saved campaign back into the wizard form ──── */
+function campaignToForm(c) {
+  if (!c) return initialForm;
+  return {
+    title:          c.title          ?? '',
+    description:    c.description    ?? '',
+    objective:      c.objective      ?? 'AWARENESS',
+    niche:          c.niche          ? c.niche.charAt(0) + c.niche.slice(1).toLowerCase() : 'Fashion',
+    budgetType:     c.budgetType     ?? 'FIXED',
+    budgetMin:      c.budgetMin      ?? c.budgetPKR ?? 50_000,
+    budgetMax:      c.budgetMax      ?? c.budgetPKR ?? 150_000,
+    deliverables: {
+      reels:       c.reels       ?? 0,
+      posts:       c.posts       ?? 0,
+      stories:     c.stories     ?? 0,
+      videos:      c.videos      ?? 0,
+      livestreams: c.livestreams ?? 0,
+    },
+    creatorCount:   c.followerMin    ?? 3,
+    deadline:       c.deadline ? new Date(c.deadline).toISOString().slice(0, 10) : todayPlus(30),
+    platforms:      Array.isArray(c.platforms) ? c.platforms : ['INSTAGRAM'],
+    creatorSizeMin: c.followerMin    ?? 10_000,
+    creatorSizeMax: c.followerMax    ?? 250_000,
+    targetLocation: c.targetLocation ?? 'Lahore',
+  };
+}
+
 /* ─── Main wizard ────────────────────────────────────────────────── */
-export default function CampaignWizard({ isOpen, onClose, onSubmit, isSubmitting }) {
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
+export default function CampaignWizard({ isOpen, onClose, onSubmit, onSaveDraft, onUpdate, isSubmitting, isSavingDraft, editCampaign }) {
+  const isEditing = !!editCampaign;
+
+  const [step,      setStep]      = useState(0);
+  const [form,      setForm]      = useState(() => campaignToForm(editCampaign));
+  const [hasDraft,  setHasDraft]  = useState(false);
+  const autoSaveTimer = useRef(null);
+
+  // When editCampaign changes (drawer opens for a different draft), re-populate
+  useEffect(() => {
+    if (isOpen && editCampaign) {
+      setForm(campaignToForm(editCampaign));
+      setStep(0);
+      setHasDraft(false);
+    }
+  }, [isOpen, editCampaign?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (patch) => setForm((p) => ({ ...p, ...patch }));
+
+  // Only show draft-restore banner when NOT editing an existing draft
+  useEffect(() => {
+    if (!isOpen || isEditing) return;
+    const draft = readDraft();
+    if (draft?.form?.title) {
+      setHasDraft(true);
+    }
+  }, [isOpen, isEditing]);
+
+  // Auto-save to localStorage as user types (debounced 800ms)
+  useEffect(() => {
+    if (!isOpen || !form.title.trim()) return;
+    clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, step, savedAt: new Date().toISOString() }));
+    }, 800);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [form, step, isOpen]);
 
   const forecast = useMemo(() => getCampaignForecast(form), [form]);
 
@@ -131,13 +196,10 @@ export default function CampaignWizard({ isOpen, onClose, onSubmit, isSubmitting
     }
   }, [step, form]);
 
-  const reset       = () => { setStep(0); setForm(initialForm); };
-  const handleClose = () => { reset(); onClose(); };
-
-  const handleSubmit = async () => {
+  const buildPayload = (status) => {
     const primaryDeliverable = DELIVERABLE_TYPES.find((d) => form.deliverables[d.key] > 0);
     const contentType = primaryDeliverable?.contentType ?? 'SPONSORED_POST';
-    await onSubmit({
+    return {
       title:       form.title,
       description: form.description.trim() || `${form.objective} campaign for ${form.niche} creators.`,
       objective:   form.objective,
@@ -158,19 +220,91 @@ export default function CampaignWizard({ isOpen, onClose, onSubmit, isSubmitting
       contentType,
       deadline:    new Date(form.deadline).toISOString(),
       startDate:   new Date().toISOString(),
-      status:      'PUBLISHED',
-    });
+      status,
+    };
+  };
+
+  const reset = () => { setStep(0); setForm(isEditing ? campaignToForm(editCampaign) : initialForm); setHasDraft(false); };
+
+  const handleClose = () => {
+    // Only auto-save draft when creating new (not editing)
+    if (!isEditing && form.title.trim().length >= 3 && onSaveDraft) {
+      onSaveDraft(buildPayload('DRAFT'));
+    }
+    localStorage.removeItem(DRAFT_KEY);
     reset();
+    onClose();
+  };
+
+  const handleSaveDraft = async () => {
+    localStorage.removeItem(DRAFT_KEY);
+    if (isEditing && onUpdate) {
+      await onUpdate(editCampaign.id, buildPayload('DRAFT'));
+    } else {
+      await onSaveDraft(buildPayload('DRAFT'));
+    }
+    reset();
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    localStorage.removeItem(DRAFT_KEY);
+    if (isEditing && onUpdate) {
+      await onUpdate(editCampaign.id, buildPayload('PUBLISHED'));
+    } else {
+      await onSubmit(buildPayload('PUBLISHED'));
+    }
+    reset();
+  };
+
+  const resumeDraft = () => {
+    const draft = readDraft();
+    if (draft?.form) { setForm(draft.form); setStep(draft.step ?? 0); }
+    setHasDraft(false);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="New Campaign"
-      description="Launch your campaign in 4 quick steps — takes less than 2 minutes."
+      title={isEditing ? `Edit Draft — ${editCampaign?.title || 'Campaign'}` : 'New Campaign'}
+      description={isEditing ? 'Update your draft and publish when ready.' : 'Launch your campaign in 4 quick steps — takes less than 2 minutes.'}
       size="2xl"
     >
+      {/* Draft resume banner */}
+      {hasDraft && (
+        <div
+          className="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl text-sm"
+          style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)' }}
+        >
+          <div className="flex items-center gap-2">
+            <span>📝</span>
+            <span className="text-fg font-medium">You have an unsaved draft. Continue where you left off?</span>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={discardDraft}
+              className="px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+              style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
+            >
+              Start fresh
+            </button>
+            <button
+              onClick={resumeDraft}
+              className="px-3 py-1 rounded-lg text-xs font-semibold text-white transition-colors"
+              style={{ background: 'linear-gradient(135deg,#6d5cff,#4c2dd1)' }}
+            >
+              Continue draft
+            </button>
+          </div>
+        </div>
+      )}
+
       <StepDots current={step} />
 
       {/* ── STEP 1: Campaign Basics ── */}
@@ -418,17 +552,32 @@ export default function CampaignWizard({ isOpen, onClose, onSubmit, isSubmitting
       {/* Footer */}
       <div className="flex gap-3 pt-6">
         {step > 0 && (
-          <Button variant="secondary" size="md" onClick={() => setStep((s) => s - 1)} className="flex-1">
+          <Button variant="secondary" size="md" onClick={() => setStep((s) => s - 1)}>
             Back
           </Button>
         )}
+
+        {/* Save as Draft — only shown when title is filled */}
+        {form.title.trim().length >= 3 && onSaveDraft && (
+          <Button
+            variant="ghost"
+            size="md"
+            isLoading={isSavingDraft}
+            onClick={handleSaveDraft}
+          >
+            💾 Save Draft
+          </Button>
+        )}
+
+        <div className="flex-1" />
+
         {step < STEPS.length - 1 ? (
-          <Button variant="primary" size="md" disabled={!canProceed} onClick={() => setStep((s) => s + 1)} className="flex-1">
+          <Button variant="primary" size="md" disabled={!canProceed} onClick={() => setStep((s) => s + 1)}>
             Continue →
           </Button>
         ) : (
-          <Button variant="primary" size="md" isLoading={isSubmitting} onClick={handleSubmit} className="flex-1">
-            🚀 Launch Campaign
+          <Button variant="primary" size="md" isLoading={isSubmitting} onClick={handleSubmit}>
+            {isEditing ? '🚀 Save & Publish' : '🚀 Launch Campaign'}
           </Button>
         )}
       </div>
@@ -437,8 +586,12 @@ export default function CampaignWizard({ isOpen, onClose, onSubmit, isSubmitting
 }
 
 CampaignWizard.propTypes = {
-  isOpen:       PropTypes.bool.isRequired,
-  onClose:      PropTypes.func.isRequired,
-  onSubmit:     PropTypes.func.isRequired,
-  isSubmitting: PropTypes.bool,
+  isOpen:         PropTypes.bool.isRequired,
+  onClose:        PropTypes.func.isRequired,
+  onSubmit:       PropTypes.func.isRequired,
+  onSaveDraft:    PropTypes.func,
+  onUpdate:       PropTypes.func,
+  isSubmitting:   PropTypes.bool,
+  isSavingDraft:  PropTypes.bool,
+  editCampaign:   PropTypes.object,
 };

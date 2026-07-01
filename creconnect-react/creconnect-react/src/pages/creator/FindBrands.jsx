@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCampaignContext } from '@/context/CampaignContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import OpportunityOverview from '@/components/discovery/OpportunityOverview';
 import AISearchBar from '@/components/discovery/AISearchBar';
@@ -54,6 +55,7 @@ export default function FindBrands() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { offers, fetchOffers } = useCampaignContext();
 
   const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -80,6 +82,8 @@ export default function FindBrands() {
   const [aiLoading,  setAiLoading]  = useState(false);
 
   /* ── Load brands + creator profile (for niche matching) ── */
+  useEffect(() => { fetchOffers(); }, [fetchOffers]);
+
   useEffect(() => {
     Promise.all([
       searchApi.brands({}).catch(() => ({ data: [] })),
@@ -170,8 +174,8 @@ export default function FindBrands() {
 
   const handleShare = useCallback((brand) => {
     const url = `${window.location.origin}${ROUTES.CREATOR_FIND_BRANDS}?q=${encodeURIComponent(brand.companyName)}`;
-    navigator.clipboard?.writeText(url);
-    toast.success('Opportunity link copied to clipboard');
+    navigator.clipboard?.writeText(url).catch(() => {});
+    toast.success('✓ Link copied!');
   }, [toast]);
 
   /* ── AI Match ── */
@@ -247,7 +251,10 @@ export default function FindBrands() {
     });
   }, [allBrands, parsed, filters]);
 
-  const overview = useMemo(() => getOpportunityOverview(allBrands, creatorNiches), [allBrands, creatorNiches]);
+  const overview = useMemo(() => ({
+    ...getOpportunityOverview(allBrands, creatorNiches),
+    openInvitations: offers.length,          // real count from backend
+  }), [allBrands, creatorNiches, offers]);
 
   const recommendedForEmpty = useMemo(
     () => [...allBrands].sort((a, b) => (b.intel.matchScore ?? 0) - (a.intel.matchScore ?? 0)).slice(0, 4),

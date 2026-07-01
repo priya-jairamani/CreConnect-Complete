@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     senderId:       { type: DataTypes.UUID, allowNull: false },
     content:        { type: DataTypes.TEXT, allowNull: false },
     attachment:     { type: DataTypes.STRING },
+    reactions:      { type: DataTypes.TEXT, defaultValue: null },
   }, { tableName: 'messages', timestamps: true, updatedAt: false });
 
   // Use sentAt as the creation timestamp alias

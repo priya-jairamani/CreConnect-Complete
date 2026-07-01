@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import Avatar from '@/components/common/Avatar';
 import Skeleton from '@/components/common/Skeleton';
 import { clsx } from 'clsx';
 import { messagesApi } from '@/api/messages.api';
+import { uploadApi } from '@/api/upload.api';
 import { useAuthContext } from '@/context/AuthContext';
 import { useSocket } from '@/hooks/useSocket';
+import EmojiPicker from '@/components/common/EmojiPicker';
 
 /* ─── Helpers ───────────────────────────────────────────────────── */
 
@@ -43,6 +46,31 @@ function showDateSep(msgs, i) {
   if (i === 0 || !msgs[i]?.createdAt) return !!msgs[i]?.createdAt;
   return new Date(msgs[i].createdAt).toDateString() !== new Date(msgs[i - 1].createdAt).toDateString();
 }
+
+/* ─── URL helpers ───────────────────────────────────────────────── */
+const _backendRoot = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1')
+  .replace(/\/api\/v1\/?$/, '');
+
+// Convert root-relative paths (e.g. /uploads/chat/file.jpg) to absolute URLs
+function resolveUrl(url = '') {
+  if (!url) return url;
+  if (url.startsWith('/uploads/')) return `${_backendRoot}${url}`;
+  return url;
+}
+
+/* ─── Attachment type helpers ───────────────────────────────────── */
+function detectType(url = '', mimeType = '') {
+  const u = url.toLowerCase().split('?')[0];
+  if (mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)$/.test(u)) return 'image';
+  if (mimeType.startsWith('video/') || /\.(mp4|webm|ogg|mov|avi|mkv|m4v)$/.test(u))     return 'video';
+  if (mimeType === 'application/pdf' || u.endsWith('.pdf'))                               return 'pdf';
+  if (/\.(doc|docx)$/.test(u))   return 'word';
+  if (/\.(xls|xlsx)$/.test(u))   return 'excel';
+  return 'file';
+}
+const TYPE_ICON = { pdf: '📑', word: '📝', excel: '📊', file: '📄' };
+
+const QUICK_REACTIONS = ['❤️', '👍', '😂', '😮', '😢', '🔥'];
 
 /* ─── Date Separator ────────────────────────────────────────────── */
 function DateSep({ iso }) {
@@ -219,6 +247,14 @@ IconBtn.propTypes = { title: PropTypes.string, onClick: PropTypes.func, children
 
 export default function MessagesLayout({ resolveOther, sidebarTitle }) {
   const { user, accessToken } = useAuthContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
+  // Conversation pre-created and passed via location.state (from brand/creator profile pages)
+  const stateConvId   = location.state?.openConversationId ?? null;
+  const stateConv     = location.state?.conversation       ?? null;
+  // Fallback: ?userId= / ?brandId= / ?creatorId= in URL (legacy path)
+  const targetUserId  = searchParams.get('userId') || searchParams.get('brandId') || searchParams.get('creatorId');
 
   const [search,        setSearch]        = useState('');
   const [conversations, setConversations] = useState([]);
@@ -237,10 +273,18 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
   const [callType,  setCallType]  = useState(null);
   const [callState, setCallState] = useState(null);
 
-  const bottomRef   = useRef(null);
-  const inputRef    = useRef(null);
-  const typingTimer = useRef(null);
-  const callTimer   = useRef(null);
+  const [showEmoji,    setShowEmoji]    = useState(false);
+  const [isUploading,  setIsUploading]  = useState(false);
+  const [attachments,  setAttachments]  = useState([]); // [{ url, name, type }, ...]
+  const [lightbox,     setLightbox]     = useState(null); // { url, type }
+  const [hoveredMsg,   setHoveredMsg]   = useState(null); // messageId
+
+  const bottomRef    = useRef(null);
+  const inputRef     = useRef(null);
+  const fileInputRef = useRef(null);
+  const emojiRef     = useRef(null);
+  const typingTimer  = useRef(null);
+  const callTimer    = useRef(null);
 
   const active      = conversations.find(c => c.id === activeId);
   const otherUserId = active ? resolveOther(active).userId  : null;
@@ -269,18 +313,73 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
       },
       'typing':      ({ conversationId, userId }) => { if (conversationId === activeId && userId !== user?.id) setTyping(true); },
       'stop-typing': ({ conversationId, userId }) => { if (conversationId === activeId && userId !== user?.id) setTyping(false); },
-      'call-incoming': ({ from, callType: ct }) => { if (from === otherUserId) { setCallType(ct); setCallState('ringing'); } },
-      'call-accepted': () => setCallState('connected'),
-      'call-ended':    () => { setCallType(null); setCallState(null); clearTimeout(callTimer.current); },
+      'call-incoming':    ({ from, callType: ct }) => { if (from === otherUserId) { setCallType(ct); setCallState('ringing'); } },
+      'call-accepted':    () => setCallState('connected'),
+      'call-ended':       () => { setCallType(null); setCallState(null); clearTimeout(callTimer.current); },
+      'message-reaction': ({ messageId, reactions }) => {
+        setMessages(prev => prev.map(m =>
+          m.id === messageId
+            ? { ...m, reactions: Object.keys(reactions).length ? JSON.stringify(reactions) : null }
+            : m
+        ));
+      },
     },
   });
 
   useEffect(() => {
     messagesApi.getConversations()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         const list = Array.isArray(data) ? data : (data?.data ?? []);
         setConversations(list);
-        if (list.length) setActiveId(list[0].id);
+
+        if (stateConvId) {
+          // Conversation was pre-created by the caller.
+          // Set the active ID immediately (dedup filter prevents visual duplicate).
+          // Then do a fresh fetch to replace any optimistic data with the real server object.
+          const existing = list.find(c => c.id === stateConvId);
+          if (!existing && stateConv) {
+            // Optimistically prepend so the sidebar doesn't flash empty
+            setConversations(prev => {
+              if (prev.some(c => c.id === stateConvId)) return prev; // already there
+              return [stateConv, ...prev];
+            });
+          }
+          setActiveId(stateConvId);
+
+          // Refresh list in background to get full server data (removes any dup)
+          messagesApi.getConversations()
+            .then(({ data: fresh }) => {
+              const freshList = Array.isArray(fresh) ? fresh : (fresh?.data ?? []);
+              if (freshList.length) setConversations(freshList);
+            })
+            .catch(() => {});
+        } else if (targetUserId) {
+          // Legacy: ?userId= in URL — find existing or create
+          const existing = list.find((c) => {
+            const other = resolveOther(c);
+            return String(other.userId) === String(targetUserId);
+          });
+
+          if (existing) {
+            setActiveId(existing.id);
+          } else {
+            try {
+              const { data: newConv } = await messagesApi.createConversation(targetUserId);
+              const conv = newConv?.data ?? newConv;
+              if (conv?.id) {
+                setConversations((prev) => [conv, ...prev]);
+                setActiveId(conv.id);
+              }
+            } catch (err) {
+              console.error('[Messages] Failed to create conversation:', err?.message);
+              if (list.length) setActiveId(list[0].id);
+            }
+          }
+          setSearchParams({}, { replace: true });
+        } else if (list.length) {
+          setActiveId(list[0].id);
+        }
+
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
@@ -311,18 +410,37 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
 
   const handleSend = useCallback(async () => {
     const content = message.trim();
-    if (!content || !activeId || isSending) return;
+    if ((!content && attachments.length === 0) || !activeId || isSending) return;
     setMessage('');
     setIsSending(true);
     emit('stop-typing', { conversationId: activeId });
     try {
-      const { data } = await messagesApi.sendMessage(activeId, { content });
-      const msg = data?.data ?? data ?? { id: Date.now(), senderId: user?.id, content, createdAt: new Date().toISOString() };
+      // Serialize multiple attachments as JSON array, single as plain string (backward compat)
+      const attachmentValue = attachments.length === 0 ? null
+        : attachments.length === 1 ? attachments[0].url
+        : JSON.stringify(attachments.map(a => a.url));
+
+      const body = { content: content || '', attachment: attachmentValue };
+      console.log('[Chat] Sending message body:', body);
+      const { data } = await messagesApi.sendMessage(activeId, body);
+      console.log('[Chat] Message saved:', data);
+      const serverMsg = data?.data ?? data;
+      const msg = serverMsg ?? {
+        id:         Date.now().toString(),
+        senderId:   user?.id,
+        content:    content || '',
+        attachment: attachmentValue,
+        createdAt:  new Date().toISOString(),
+      };
       setMessages(p => [...p, msg]);
-      setConversations(p => p.map(c => c.id === activeId ? { ...c, lastMessage: content, updatedAt: new Date().toISOString() } : c));
+      setConversations(p => p.map(c => c.id === activeId
+        ? { ...c, lastMessage: content || `${attachments.length} attachment${attachments.length > 1 ? 's' : ''}`, updatedAt: new Date().toISOString() }
+        : c
+      ));
+      setAttachments([]);
     } catch {}
     setIsSending(false);
-  }, [message, activeId, isSending, emit, user?.id]);
+  }, [message, attachments, activeId, isSending, emit, user?.id]);
 
   const handleTyping = e => {
     setMessage(e.target.value);
@@ -330,6 +448,46 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
     emit('typing', { conversationId: activeId });
     clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => emit('stop-typing', { conversationId: activeId }), 1500);
+  };
+
+  const insertEmoji = (emoji) => {
+    setMessage(prev => prev + emoji);
+    setShowEmoji(false);
+    inputRef.current?.focus();
+  };
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    if (!showEmoji) return;
+    const handler = (e) => { if (emojiRef.current && !emojiRef.current.contains(e.target)) setShowEmoji(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showEmoji]);
+
+  // ── File attachment ──────────────────────────────────────────────────
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0 || !activeId) return;
+    e.target.value = '';
+    setIsUploading(true);
+    try {
+      const uploadOne = async (file) => {
+        console.log('[Attachment] Uploading:', file.name, file.type, file.size);
+        const { data } = await uploadApi.chatAttachment(activeId, file);
+        console.log('[Attachment] Upload response:', data);
+        const url = data?.url ?? data?.data?.url ?? (typeof data === 'string' ? data : null);
+        console.log('[Attachment] URL:', url);
+        return { url, name: file.name, type: file.type };
+      };
+      const uploaded = await Promise.all(files.map(uploadOne));
+      const valid = uploaded.filter(a => a.url);
+      console.log('[Attachment] Valid uploads:', valid);
+      setAttachments(prev => [...prev, ...valid]);
+    } catch (err) {
+      console.error('[Attachment] Upload failed:', err?.message, err?.response?.data);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const startCall = type => {
@@ -352,11 +510,39 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
     setCallState('connected');
   };
 
-  const filtered = conversations.filter(c =>
+  const handleReaction = useCallback(async (messageId, emoji) => {
+    // Optimistically update local state
+    setMessages(prev => prev.map(m => {
+      if (m.id !== messageId) return m;
+      let reactions = {};
+      try { reactions = m.reactions ? JSON.parse(m.reactions) : {}; } catch { reactions = {}; }
+      if (!reactions[emoji]) reactions[emoji] = [];
+      const idx = reactions[emoji].indexOf(user?.id);
+      if (idx === -1) { reactions[emoji] = [...reactions[emoji], user?.id]; }
+      else {
+        reactions[emoji] = reactions[emoji].filter(id => id !== user?.id);
+        if (reactions[emoji].length === 0) delete reactions[emoji];
+      }
+      return { ...m, reactions: Object.keys(reactions).length ? JSON.stringify(reactions) : null };
+    }));
+    setHoveredMsg(null);
+    try {
+      await messagesApi.toggleReaction(activeId, messageId, emoji);
+    } catch {
+      // server will emit the corrected state via socket; no need to revert
+    }
+  }, [activeId, user?.id]);
+
+  // Deduplicate by id to prevent race-condition duplicates
+  const uniqueConversations = conversations.filter(
+    (c, idx, arr) => arr.findIndex(x => x.id === c.id) === idx
+  );
+
+  const filtered = uniqueConversations.filter(c =>
     resolveOther(c).name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalUnread = conversations.reduce((s, c) => s + (c.unread ?? 0), 0);
+  const totalUnread = uniqueConversations.reduce((s, c) => s + (c.unread ?? 0), 0);
 
   /* ── Render ── */
   return (
@@ -594,9 +780,38 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
                         </div>
                       )}
 
-                      <div className={clsx('group flex flex-col max-w-sm', isMe ? 'items-end' : 'items-start')}>
+                      <div
+                        className={clsx('group flex flex-col max-w-sm', isMe ? 'items-end' : 'items-start')}
+                        onMouseEnter={() => setHoveredMsg(m.id)}
+                        onMouseLeave={() => setHoveredMsg(null)}
+                      >
+                        {/* Reaction picker — appears on hover */}
                         <div
-                          className="px-4 py-2.5 text-sm leading-relaxed"
+                          className={clsx(
+                            'flex items-center gap-0.5 mb-1 transition-all duration-150',
+                            hoveredMsg === m.id ? 'opacity-100 translate-y-0' : 'opacity-0 pointer-events-none translate-y-1'
+                          )}
+                          style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}
+                        >
+                          <div
+                            className="flex items-center gap-0.5 px-1.5 py-1 rounded-full shadow-lg"
+                            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+                          >
+                            {QUICK_REACTIONS.map(emoji => (
+                              <button
+                                key={emoji}
+                                type="button"
+                                onClick={() => handleReaction(m.id, emoji)}
+                                className="w-7 h-7 flex items-center justify-center text-base rounded-full transition-all hover:scale-125 hover:bg-white/10 active:scale-95"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div
+                          className="text-sm leading-relaxed overflow-hidden"
                           style={{
                             borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                             maxWidth: '100%',
@@ -607,8 +822,89 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
                             ),
                           }}
                         >
-                          {m.content}
+                          {/* Attachment(s) */}
+                          {m.attachment && (() => {
+                            let rawUrls = [];
+                            try { rawUrls = JSON.parse(m.attachment); if (!Array.isArray(rawUrls)) rawUrls = [m.attachment]; }
+                            catch { rawUrls = [m.attachment]; }
+                            const urls = rawUrls.map(resolveUrl);
+
+                            const renderOne = (url, i) => {
+                              const kind = detectType(url);
+                              const name = url.split('/').pop()?.split('?')[0] || 'File';
+                              if (kind === 'image') return (
+                                <button key={i} type="button" onClick={() => setLightbox({ url, type: 'image' })}
+                                  className="block focus:outline-none">
+                                  <img src={url} alt="attachment"
+                                    className="max-w-[220px] max-h-[160px] object-cover rounded-xl block hover:opacity-90 transition-opacity"
+                                    style={{ marginBottom: urls.length > 1 ? 2 : 0 }}
+                                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                                  />
+                                </button>
+                              );
+                              if (kind === 'video') return (
+                                <button key={i} type="button" onClick={() => setLightbox({ url, type: 'video' })}
+                                  className="block w-full focus:outline-none">
+                                  <div className="relative max-w-[220px] rounded-xl overflow-hidden">
+                                    <video src={url} className="max-w-full max-h-[160px] rounded-xl block" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
+                                      <span className="text-white text-3xl">▶</span>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                              return (
+                                <button key={i} type="button" onClick={() => setLightbox({ url, type: kind, name })}
+                                  className="flex items-center gap-2 px-4 py-2 hover:opacity-80 transition-opacity w-full text-left focus:outline-none">
+                                  <span className="text-lg">{TYPE_ICON[kind]}</span>
+                                  <span className="text-xs underline truncate max-w-[160px]">{name}</span>
+                                </button>
+                              );
+                            };
+
+                            return (
+                              <div className={urls.length > 1 ? 'grid grid-cols-2 gap-1 p-1' : ''}>
+                                {urls.map(renderOne)}
+                              </div>
+                            );
+                          })()}
+                          {/* Text content */}
+                          {m.content && (
+                            <div className="px-4 py-2.5">{m.content}</div>
+                          )}
                         </div>
+
+                        {/* Reaction pills */}
+                        {m.reactions && (() => {
+                          let reactions = {};
+                          try { reactions = JSON.parse(m.reactions); } catch { return null; }
+                          const entries = Object.entries(reactions).filter(([, ids]) => ids.length > 0);
+                          if (!entries.length) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entries.map(([emoji, ids]) => {
+                                const iMine = ids.includes(user?.id);
+                                return (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() => handleReaction(m.id, emoji)}
+                                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+                                    style={{
+                                      background: iMine ? 'rgba(109,92,255,0.18)' : 'var(--surface-2)',
+                                      border: `1px solid ${iMine ? 'rgba(109,92,255,0.45)' : 'var(--border)'}`,
+                                      color: 'var(--fg)',
+                                    }}
+                                  >
+                                    <span>{emoji}</span>
+                                    <span style={{ color: iMine ? 'var(--brand-400)' : 'var(--fg-muted)' }}>{ids.length}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+
                         {/* Timestamp on hover */}
                         <span className="text-[10px] text-fg-muted mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity select-none">
                           {msgTime(m.createdAt)}{isMe && ' ✓'}
@@ -623,10 +919,41 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
           )}
         </div>
 
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="flex-shrink-0 px-4 pt-2 flex flex-wrap gap-2" style={{ background: 'var(--surface)' }}>
+            {attachments.map((att, idx) => {
+              const resolvedUrl = resolveUrl(att.url);
+              const kind = detectType(resolvedUrl, att.type);
+              return (
+                <div key={idx} className="relative flex-shrink-0">
+                  {kind === 'image' ? (
+                    <img src={resolvedUrl} alt={att.name} className="w-16 h-16 rounded-xl object-cover" />
+                  ) : kind === 'video' ? (
+                    <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'var(--surface-2)' }}>🎬</div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs" style={{ background: 'rgba(109,92,255,0.10)', border: '1px solid rgba(109,92,255,0.25)', color: 'var(--fg)' }}>
+                      <span>{TYPE_ICON[kind]}</span>
+                      <span className="truncate max-w-[100px]">{att.name}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                    style={{ background: '#f0445f' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Input bar */}
         <div
           className="flex-shrink-0 px-4 py-3"
-          style={{ background: 'var(--surface)', borderTop: '1px solid var(--border)' }}
+          style={{ background: 'var(--surface)', borderTop: attachments.length > 0 ? 'none' : '1px solid var(--border)' }}
         >
           <div
             className="flex items-center gap-2 rounded-2xl px-3 py-2 transition-all"
@@ -636,13 +963,27 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
               boxShadow: message.trim() ? '0 0 0 3px rgba(109,92,255,0.08)' : 'none',
             }}
           >
-            <button
-              title="Emoji"
-              className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-base rounded-lg transition-colors hover:bg-white/[0.06]"
-              style={{ color: 'var(--fg-muted)' }}
-            >
-              😊
-            </button>
+            {/* Emoji trigger */}
+            <div className="relative flex-shrink-0" ref={emojiRef}>
+              <button
+                title="Emoji"
+                onClick={() => setShowEmoji(v => !v)}
+                className="w-8 h-8 flex items-center justify-center text-base rounded-lg transition-colors hover:bg-white/[0.06]"
+                style={{ color: showEmoji ? 'var(--brand-400)' : 'var(--fg-muted)' }}
+              >
+                😊
+              </button>
+
+              {/* Emoji picker popover */}
+              {showEmoji && (
+                <div className="absolute bottom-12 left-0 z-50">
+                  <EmojiPicker
+                    onSelect={insertEmoji}
+                    onClose={() => setShowEmoji(false)}
+                  />
+                </div>
+              )}
+            </div>
 
             <input
               ref={inputRef}
@@ -656,22 +997,35 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
               style={{ color: 'var(--fg)' }}
             />
 
+            {/* Attachment button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              multiple
+              accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.txt"
+              onChange={handleFileSelect}
+            />
             <button
-              title="Attach file"
-              className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-base rounded-lg transition-colors hover:bg-white/[0.06]"
-              style={{ color: 'var(--fg-muted)' }}
+              title={isUploading ? 'Uploading…' : 'Attach file'}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              disabled={!activeId || isUploading}
+              className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-base rounded-lg transition-colors hover:bg-white/[0.06] disabled:opacity-40"
+              style={{ color: attachments.length > 0 ? 'var(--brand-400)' : 'var(--fg-muted)' }}
             >
-              📎
+              {isUploading
+                ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                : '📎'}
             </button>
 
             {/* Send button */}
             <button
               onClick={handleSend}
-              disabled={!message.trim() || isSending || !activeId}
+              disabled={(!message.trim() && attachments.length === 0) || isSending || !activeId}
               className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100"
               style={{
-                background: message.trim() && activeId ? 'linear-gradient(135deg, #6d5cff, #4c2dd1)' : 'var(--border)',
-                boxShadow: message.trim() && activeId ? '0 4px 14px rgba(109,92,255,0.4)' : 'none',
+                background: (message.trim() || attachments.length > 0) && activeId ? 'linear-gradient(135deg, #6d5cff, #4c2dd1)' : 'var(--border)',
+                boxShadow: (message.trim() || attachments.length > 0) && activeId ? '0 4px 14px rgba(109,92,255,0.4)' : 'none',
                 transition: 'all 0.2s',
               }}
             >
@@ -703,6 +1057,62 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
           onEnd={endCall}
           onAccept={acceptCall}
         />
+      )}
+
+      {/* ══ ATTACHMENT LIGHTBOX ═════════════════════════════════════ */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[9998] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-2xl"
+            style={{ background: 'rgba(255,255,255,0.15)' }}
+          >
+            ×
+          </button>
+
+          {lightbox.type === 'image' && (
+            <img
+              src={lightbox.url}
+              alt="attachment"
+              className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
+
+          {lightbox.type === 'video' && (
+            <video
+              src={lightbox.url}
+              controls
+              autoPlay
+              className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            />
+          )}
+
+          {(lightbox.type === 'pdf' || lightbox.type === 'word' || lightbox.type === 'excel' || lightbox.type === 'file') && (
+            <div
+              className="rounded-2xl p-8 text-center space-y-4"
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-5xl">{TYPE_ICON[lightbox.type]}</p>
+              <p className="text-fg font-semibold">{lightbox.name}</p>
+              <a
+                href={lightbox.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ background: 'linear-gradient(135deg,#6d5cff,#4c2dd1)' }}
+              >
+                ↓ Download
+              </a>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

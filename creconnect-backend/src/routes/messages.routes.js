@@ -110,8 +110,9 @@ router.post('/conversations', ctrl.createConversation);
  *                 data:    { $ref: '#/components/schemas/Message' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  */
-router.post('/conversations/:id/read',     ctrl.markConversationRead);
-router.get('/conversations/:id/messages',  ctrl.getMessages);
-router.post('/conversations/:id/messages', uploadChatAttachment.single('attachment'), ctrl.sendMessage);
+router.post('/conversations/:id/read',                              ctrl.markConversationRead);
+router.get('/conversations/:id/messages',                           ctrl.getMessages);
+router.post('/conversations/:id/messages',                          uploadChatAttachment.single('attachment'), ctrl.sendMessage);
+router.patch('/conversations/:id/messages/:messageId/reaction',     ctrl.toggleReaction);
 
 module.exports = router;

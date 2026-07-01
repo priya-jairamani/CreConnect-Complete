@@ -62,4 +62,12 @@ const reorderMedia = async (req, res, next) => {
   try { await svc.reorderMedia(req.user.id, req.body.orderedIds); ok(res, {}, 'Reordered'); } catch (e) { next(e); }
 };
 
-module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };
+const getPublicMedia = async (req, res, next) => {
+  try {
+    // creatorId param can be a CreatorProfile.id
+    const media = await svc.getPublicMedia(req.params.creatorId);
+    ok(res, media);
+  } catch (e) { next(e); }
+};
+
+module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };

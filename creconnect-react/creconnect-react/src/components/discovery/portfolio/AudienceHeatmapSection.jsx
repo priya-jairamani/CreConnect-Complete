@@ -8,6 +8,7 @@ function cellColor(value) {
 }
 
 export default function AudienceHeatmapSection({ heatmap }) {
+  if (!heatmap) return null;
   return (
     <div className="space-y-3">
       <p className="text-fg-muted text-sm">

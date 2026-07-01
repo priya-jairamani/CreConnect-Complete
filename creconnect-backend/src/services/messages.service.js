@@ -2,6 +2,7 @@ const { Conversation, Message, CreatorProfile, BrandProfile, User } = require('.
 const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const { emitToConversation } = require('../config/socket');
+const { logActivity } = require('../utils/activity');
 
 async function getConversations(userId, role) {
   const where = role === 'CREATOR'
@@ -24,30 +25,45 @@ async function createConversation(userId, role, otherUserId) {
   if (role === 'CREATOR') {
     const creator = await CreatorProfile.findOne({ where: { userId } });
     if (!creator) throw new ForbiddenError();
-    const brand = await BrandProfile.findOne({ where: { userId: otherUserId } });
-    if (!brand)   throw new NotFoundError('Brand not found');
+    // Accept either User.id OR BrandProfile.id
+    const brand = await BrandProfile.findOne({ where: { userId: otherUserId } })
+               ?? await BrandProfile.findByPk(otherUserId);
+    if (!brand) throw new NotFoundError('Brand not found');
     creatorId = creator.id;
     brandId   = brand.id;
   } else {
-    const brand   = await BrandProfile.findOne({ where: { userId } });
-    if (!brand)   throw new ForbiddenError();
-    const creator = await CreatorProfile.findOne({ where: { userId: otherUserId } });
+    const brand = await BrandProfile.findOne({ where: { userId } });
+    if (!brand) throw new ForbiddenError();
+    // Accept either User.id OR CreatorProfile.id
+    const creator = await CreatorProfile.findOne({ where: { userId: otherUserId } })
+                 ?? await CreatorProfile.findByPk(otherUserId);
     if (!creator) throw new NotFoundError('Creator not found');
     creatorId = creator.id;
     brandId   = brand.id;
   }
 
-  const [convo] = await Conversation.findOrCreate({
+  const [convo, created] = await Conversation.findOrCreate({
     where: { creatorId, brandId },
     defaults: { creatorId, brandId },
   });
 
-  return convo.reload({
+  const result = await convo.reload({
     include: [
       { model: CreatorProfile, as: 'creator', attributes: ['userId', 'displayName', 'avatarUrl', 'username'] },
       { model: BrandProfile,   as: 'brand',   attributes: ['userId', 'companyName', 'logoUrl'] },
     ],
   });
+
+  if (created) {
+    // Log for both participants
+    const brandUserId   = result.brand?.userId;
+    const creatorUserId = result.creator?.userId;
+    const meta = { with: role === 'CREATOR' ? result.brand?.companyName : result.creator?.displayName };
+    if (brandUserId)   logActivity(brandUserId,   'message.conversation_started', { entity: 'conversation', entityId: convo.id, meta });
+    if (creatorUserId) logActivity(creatorUserId, 'message.conversation_started', { entity: 'conversation', entityId: convo.id, meta });
+  }
+
+  return result;
 }
 
 async function getMessages(conversationId, userId, query) {
@@ -70,8 +86,11 @@ async function sendMessage(conversationId, userId, content, attachment) {
 
   const message = await Message.create({ conversationId, senderId: userId, content, attachment });
 
+  // If there's no text content (attachment-only message), store a readable label
+  const displayContent = content?.trim() || (attachment ? '📎 Attachment' : null);
+
   await Conversation.update(
-    { lastMessage: content, lastMessageAt: new Date(), lastMessageSenderId: userId },
+    { lastMessage: displayContent, lastMessageAt: new Date(), lastMessageSenderId: userId },
     { where: { id: conversationId } }
   );
 
@@ -94,6 +113,29 @@ async function _assertParticipant(conversationId, userId) {
   return convo;
 }
 
+async function toggleReaction(messageId, userId, emoji) {
+  const message = await Message.findByPk(messageId);
+  if (!message) throw new NotFoundError('Message not found');
+
+  let reactions = {};
+  try { reactions = message.reactions ? JSON.parse(message.reactions) : {}; } catch { reactions = {}; }
+
+  if (!reactions[emoji]) reactions[emoji] = [];
+  const idx = reactions[emoji].indexOf(userId);
+  if (idx === -1) {
+    reactions[emoji].push(userId);
+  } else {
+    reactions[emoji].splice(idx, 1);
+    if (reactions[emoji].length === 0) delete reactions[emoji];
+  }
+
+  const reactionsStr = Object.keys(reactions).length ? JSON.stringify(reactions) : null;
+  await Message.update({ reactions: reactionsStr }, { where: { id: messageId } });
+
+  emitToConversation(message.conversationId, 'message-reaction', { messageId, reactions });
+  return reactions;
+}
+
 async function markConversationRead(conversationId, userId) {
   const convo = await _assertParticipant(conversationId, userId);
   if (convo.lastMessageSenderId && convo.lastMessageSenderId !== userId) {
@@ -105,9 +147,12 @@ async function markConversationRead(conversationId, userId) {
 }
 
 async function getUnreadCount(userId) {
+  const { Op } = require('sequelize');
   const where = {
-    lastMessageSenderId: { [require('sequelize').Op.ne]: userId },
-    lastMessage:         { [require('sequelize').Op.ne]: null },
+    // sender is someone other than the current user (NULL != userId is falsy in PG, so NULLs are excluded)
+    lastMessageSenderId: { [Op.ne]: userId },
+    // exclude null AND empty string (empty string was stored for attachment-only messages before the fix)
+    lastMessage: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] },
   };
   // Only count conversations the user participates in
   const conversations = await Conversation.findAll({
@@ -122,4 +167,4 @@ async function getUnreadCount(userId) {
   ).length;
 }
 
-module.exports = { getConversations, createConversation, getMessages, sendMessage, markConversationRead, getUnreadCount };
+module.exports = { getConversations, createConversation, getMessages, sendMessage, markConversationRead, getUnreadCount, toggleReaction };

@@ -3,6 +3,7 @@ import ScoreRing from '@/components/common/ScoreRing';
 import Badge from '@/components/common/Badge';
 
 export default function PaymentReliabilitySection({ payment }) {
+  if (!payment) return null;
   return (
     <div className="space-y-4">
       {payment.badges?.length > 0 && (

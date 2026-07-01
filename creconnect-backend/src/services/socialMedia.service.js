@@ -1,22 +1,52 @@
 const axios = require('axios');
 
+const GRAPH_VERSION = 'v25.0';
+
+const callGraphAPI = async (endpoint, method = 'get', params = {}, data = {}) => {
+  const url = `https://graph.facebook.com/${GRAPH_VERSION}/${endpoint}`;
+  console.log(`[Graph API] ${method.toUpperCase()} /${endpoint}`, { params });
+  try {
+    const response = await axios({ method, url, params, data });
+    console.log(`[Graph API] ✓ /${endpoint} response:`, JSON.stringify(response.data).slice(0, 300));
+    if (response) return response.data;
+  } catch (err) {
+    console.error(`[Graph API] ✗ /${endpoint} error:`, err.response?.data || err.message);
+    throw err;
+  }
+};
+
+async function exchangeFacebookLongLivedToken(shortToken) {
+  const data = await callGraphAPI('oauth/access_token', 'get', {
+    grant_type:        'fb_exchange_token',
+    client_id:         process.env.FACEBOOK_CLIENT_ID,
+    client_secret:     process.env.FACEBOOK_CLIENT_SECRET,
+    fb_exchange_token: shortToken,
+  });
+  return { accessToken: data.access_token, expiresInSecs: data.expires_in ?? 5184000 };
+}
+
 async function exchangeInstagramLongLivedToken(shortToken) {
-  const { data } = await axios.get('https://graph.instagram.com/access_token', {
-    params: { grant_type: 'ig_exchange_token', client_secret: process.env.INSTAGRAM_CLIENT_SECRET, access_token: shortToken },
+  const data = await callGraphAPI('oauth/access_token', 'get', {
+    grant_type:    'ig_exchange_token',
+    client_secret: process.env.INSTAGRAM_CLIENT_SECRET,
+    access_token:  shortToken,
   });
   return { accessToken: data.access_token, expiresInSecs: data.expires_in ?? 5183944 };
 }
 
 async function fetchInstagramProfile(accessToken) {
-  const { data } = await axios.get('https://graph.instagram.com/me', {
-    params: { fields: 'id,username,media_count,account_type', access_token: accessToken },
+  const data = await callGraphAPI('me', 'get', {
+    fields:       'id,username,media_count,account_type',
+    access_token: accessToken,
   });
   return { platformUserId: data.id, handle: `@${data.username}`, mediaCount: data.media_count ?? 0, followerCount: 0 };
 }
 
 async function fetchInstagramMedia(accessToken) {
-  const { data } = await axios.get('https://graph.instagram.com/me/media', {
-    params: { fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count', limit: 20, access_token: accessToken },
+  const data = await callGraphAPI('me/media', 'get', {
+    fields:       'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
+    limit:        20,
+    access_token: accessToken,
   });
   return (data.data ?? []).map((p) => ({
     externalId: p.id, mediaType: p.media_type === 'VIDEO' ? 'REEL' : p.media_type === 'CAROUSEL_ALBUM' ? 'CAROUSEL_ALBUM' : 'IMAGE',
@@ -100,13 +130,74 @@ async function fetchLinkedInProfile(accessToken) {
   return { platformUserId: data.id ?? null, handle: name || 'LinkedIn User', followerCount: 0 };
 }
 
+async function fetchFacebookProfile(accessToken) {
+  // pages_show_list gives us the user's managed pages with fan_count
+  try {
+    const pages = await callGraphAPI('me/accounts', 'get', {
+      fields:       'id,name,username,fan_count,picture{url}',
+      access_token: accessToken,
+    });
+    const page = pages?.data?.[0];
+    if (page) {
+      return {
+        platformUserId:    page.id,
+        handle:            page.username ? `@${page.username}` : (page.name ?? 'Facebook Page'),
+        followerCount:     page.fan_count ?? 0,
+        profilePictureUrl: page.picture?.data?.url ?? null,
+      };
+    }
+  } catch (e) {
+    console.warn('[Facebook] /me/accounts failed, falling back to /me:', e?.message);
+  }
+  const data = await callGraphAPI('me', 'get', {
+    fields:       'id,name,picture.type(large)',
+    access_token: accessToken,
+  });
+  return {
+    platformUserId:    data.id,
+    handle:            data.name ?? 'Facebook User',
+    followerCount:     0,
+    profilePictureUrl: data.picture?.data?.url ?? null,
+  };
+}
+
+async function fetchFacebookMedia(accessToken, platformUserId) {
+  if (!platformUserId) return [];
+  try {
+    const data = await callGraphAPI(`${platformUserId}/posts`, 'get', {
+      fields:       'id,message,created_time,full_picture,permalink_url,likes.summary(true),comments.summary(true)',
+      limit:        20,
+      access_token: accessToken,
+    });
+    return (data?.data ?? []).map((p) => ({
+      externalId:   p.id,
+      mediaType:    'IMAGE',
+      caption:      p.message ?? null,
+      mediaUrl:     p.full_picture ?? null,
+      thumbnailUrl: p.full_picture ?? null,
+      permalink:    p.permalink_url ?? null,
+      likeCount:    p.likes?.summary?.total_count ?? 0,
+      commentCount: p.comments?.summary?.total_count ?? 0,
+      viewCount:    0,
+      shareCount:   0,
+      postedAt:     p.created_time ? new Date(p.created_time) : null,
+    }));
+  } catch (e) {
+    console.warn('[Facebook] Page posts fetch failed:', e?.message);
+    return [];
+  }
+}
+
 const FETCHERS = {
   INSTAGRAM: { profile: fetchInstagramProfile, media: fetchInstagramMedia },
   YOUTUBE:   { profile: fetchYoutubeProfile,   media: fetchYoutubeMedia   },
   TIKTOK:    { profile: fetchTikTokProfile,     media: fetchTikTokMedia    },
   TWITTER:   { profile: fetchTwitterProfile,    media: async (token, uid) => [] },
   LINKEDIN:  { profile: fetchLinkedInProfile,   media: async () => []       },
-  FACEBOOK:  { profile: async () => ({ handle: 'Facebook User', followerCount: 0 }), media: async () => [] },
+  FACEBOOK: {
+    profile: fetchFacebookProfile,
+    media:   fetchFacebookMedia,
+  },
 };
 
 async function fetchPlatformProfile(platform, accessToken) {
@@ -121,4 +212,4 @@ async function fetchPlatformMedia(platform, accessToken, platformUserId) {
   return fetcher(accessToken, platformUserId);
 }
 
-module.exports = { exchangeInstagramLongLivedToken, fetchPlatformProfile, fetchPlatformMedia };
+module.exports = { exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken, fetchPlatformProfile, fetchPlatformMedia };

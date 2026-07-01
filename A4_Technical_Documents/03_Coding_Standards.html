@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>A4 – Coding Standards | CreConnect</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13.5px;color:#1a1a2e;background:#fff;line-height:1.65}
+  .page{max-width:900px;margin:0 auto;padding:48px 56px}
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:60px 56px 48px;border-radius:12px;margin-bottom:40px}
+  .cover .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.65;margin-bottom:12px}
+  .cover h1{font-size:32px;font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+  .cover .sub{font-size:15px;opacity:.75;margin-bottom:28px}
+  .cover-meta{display:flex;gap:32px;flex-wrap:wrap}
+  .cover-meta span{font-size:12px;opacity:.7}
+  .cover-meta strong{opacity:1;color:#a78bfa}
+  h2{font-size:20px;font-weight:700;color:#1a1a2e;margin:36px 0 14px;padding-bottom:8px;border-bottom:2px solid #e9e9f0}
+  h3{font-size:15px;font-weight:600;color:#3730a3;margin:22px 0 10px}
+  p{margin-bottom:12px;color:#374151}
+  ul{margin:8px 0 16px 22px}
+  li{margin-bottom:5px;color:#374151}
+  table{width:100%;border-collapse:collapse;margin:12px 0 22px;font-size:12.5px}
+  th{background:#1a1a2e;color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:12px}
+  td{padding:8px 12px;border-bottom:1px solid #e9e9f0;vertical-align:top}
+  tr:nth-child(even) td{background:#f8f8fc}
+  pre{font-family:'Courier New',monospace;font-size:12px;background:#0d0d1a;color:#c9d1d9;border-radius:8px;padding:18px 20px;overflow-x:auto;margin:10px 0 20px;border-left:3px solid #6d5cff;line-height:1.7}
+  pre .comment{color:#6a9955}
+  pre .kw{color:#c792ea}
+  pre .str{color:#9dcc65}
+  pre .fn{color:#82aaff}
+  pre .ok{color:#89ddff}
+  code{font-family:'Courier New',monospace;font-size:12px;background:#f1f0f8;border-radius:4px;padding:2px 6px;color:#2d2d6b}
+  .good::before{content:'✅ ';color:#059669}
+  .bad::before{content:'❌ ';color:#dc2626}
+  .rule-card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:12px 0;background:#fafafa}
+  .rule-card h4{font-size:13px;font-weight:600;color:#1a1a2e;margin-bottom:6px}
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#ede9fe;color:#5b21b6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  @media print{body{font-size:12px}.page{padding:24px 32px}pre{font-size:11px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="tag">A4 — Technical Documents</div>
+    <h1>Coding Standards</h1>
+    <div class="sub">CreConnect — Influencer–Brand Collaboration Platform</div>
+    <div class="cover-meta">
+      <span><strong>Style Guide:</strong> Airbnb JavaScript</span>
+      <span><strong>Linter:</strong> ESLint 8</span>
+      <span><strong>Runtime:</strong> Node.js 20 (backend), React 18 (frontend)</span>
+      <span><strong>Date:</strong> June 2026</span>
+    </div>
+  </div>
+
+  <h2>1. Style Guide Adopted</h2>
+  <p>The CreConnect project follows the <strong>Airbnb JavaScript Style Guide</strong> — one of the most widely adopted standards in the JavaScript / Node.js ecosystem. ESLint 8 enforces these rules automatically across the backend codebase. The frontend (React 18 / Vite) additionally uses <code>eslint-plugin-react</code> and <code>eslint-plugin-react-hooks</code>.</p>
+
+  <div class="rule-card">
+    <h4>Run the linter</h4>
+    <pre>cd creconnect-backend
+npm run lint
+# Executes: eslint src/ --ext .js</pre>
+  </div>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>2. Variable Declarations</h2>
+  <table>
+    <tr><th>Rule</th><th>Standard</th><th>Example</th></tr>
+    <tr><td>Default declaration</td><td>Always use <code>const</code></td><td><code>const router = Router();</code></td></tr>
+    <tr><td>Reassignment needed</td><td>Use <code>let</code></td><td><code>let campaignId;</code></td></tr>
+    <tr><td><code>var</code></td><td>Banned entirely</td><td class="bad"><code>var x = 1;</code> → use <code>const x = 1;</code></td></tr>
+  </table>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>3. Naming Conventions</h2>
+  <table>
+    <tr><th>Item</th><th>Convention</th><th>Example</th></tr>
+    <tr><td>Variables &amp; functions</td><td><code>camelCase</code></td><td><code>brandToken</code>, <code>createCampaign()</code></td></tr>
+    <tr><td>Classes &amp; Sequelize Models</td><td><code>PascalCase</code></td><td><code>BrandProfile</code>, <code>CreatorProfile</code>, <code>Campaign</code></td></tr>
+    <tr><td>Global constants</td><td><code>UPPER_SNAKE_CASE</code></td><td><code>JWT_SECRET</code>, <code>MAX_FILE_SIZE</code></td></tr>
+    <tr><td>Backend files</td><td><code>kebab.type.js</code></td><td><code>auth.service.js</code>, <code>campaigns.routes.js</code></td></tr>
+    <tr><td>React components</td><td><code>PascalCase.jsx</code></td><td><code>BrandDashboard.jsx</code>, <code>CreatorCard.jsx</code></td></tr>
+    <tr><td>Sequelize columns</td><td><code>camelCase</code> (auto-maps to <code>snake_case</code>)</td><td><code>passwordHash</code>, <code>displayName</code></td></tr>
+    <tr><td>Environment variables</td><td><code>UPPER_SNAKE_CASE</code></td><td><code>DATABASE_URL</code>, <code>CLOUDINARY_API_KEY</code></td></tr>
+  </table>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>4. Functions &amp; Async Patterns</h2>
+  <h3>4.1 Async/Await (preferred over .then().catch())</h3>
+  <pre><span class="comment">// ✅ Correct — async/await with try/catch</span>
+<span class="kw">const</span> <span class="fn">getUser</span> = <span class="kw">async</span> (id) => {
+  <span class="kw">const</span> user = <span class="ok">await</span> User.findByPk(id);
+  <span class="kw">return</span> user;
+};
+
+<span class="comment">// ❌ Avoid — callback chaining</span>
+User.findByPk(id).then(user => ...).catch(err => ...);</pre>
+
+  <h3>4.2 Controller Pattern (all routes)</h3>
+  <pre><span class="comment">// Standard across all 12 controllers</span>
+<span class="kw">const</span> <span class="fn">createCampaign</span> = <span class="kw">async</span> (req, res, next) => {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> campaign = <span class="ok">await</span> campaignService.create(req.body, req.user.id);
+    <span class="kw">return</span> res.status(201).json({ success: <span class="kw">true</span>, data: campaign });
+  } <span class="kw">catch</span> (err) {
+    next(err); <span class="comment">// passed to global error handler</span>
+  }
+};</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>5. Imports &amp; Exports</h2>
+  <h3>5.1 Backend — CommonJS (Node.js)</h3>
+  <pre><span class="kw">const</span> express = require(<span class="str">'express'</span>);
+<span class="kw">const</span> { User, BrandProfile } = require(<span class="str">'../models'</span>);
+
+module.exports = router;</pre>
+
+  <h3>5.2 Frontend — ES Modules (React/Vite)</h3>
+  <pre><span class="kw">import</span> React <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { useNavigate } <span class="kw">from</span> <span class="str">'react-router-dom'</span>;
+
+<span class="kw">export default</span> BrandDashboard;</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>6. String Formatting</h2>
+  <table>
+    <tr><th>Rule</th><th>Correct</th><th>Incorrect</th></tr>
+    <tr><td>Interpolation</td><td class="good"><code>`Welcome, ${user.displayName}!`</code></td><td class="bad"><code>'Welcome, ' + user.displayName</code></td></tr>
+    <tr><td>Static strings</td><td class="good"><code>const role = 'CREATOR';</code></td><td class="bad"><code>const role = "CREATOR";</code></td></tr>
+    <tr><td>Long strings</td><td class="good">Template literal with line breaks</td><td class="bad">String concatenation with <code>+</code></td></tr>
+  </table>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>7. Destructuring</h2>
+  <pre><span class="comment">// ✅ Always destructure from req.body and model includes</span>
+<span class="kw">const</span> { email, password, role } = req.body;
+
+<span class="kw">const</span> { id: userId, brandProfile } = <span class="ok">await</span> User.findByPk(req.user.id, {
+  include: [{ model: BrandProfile, as: <span class="str">'brandProfile'</span> }]
+});</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>8. React / Frontend Standards</h2>
+  <table>
+    <tr><th>Area</th><th>Rule</th></tr>
+    <tr><td>Component type</td><td>Functional components only — no class components</td></tr>
+    <tr><td>State management</td><td><code>useState</code>, <code>useReducer</code>, <code>useContext</code> — no legacy lifecycle methods</td></tr>
+    <tr><td>Side effects</td><td><code>useEffect</code> with explicit dependency arrays</td></tr>
+    <tr><td>API calls</td><td>Centralised in <code>src/api/</code> or <code>src/services/</code> — never inline in components</td></tr>
+    <tr><td>List rendering keys</td><td>Stable unique keys (<code>item.id</code>) — never array index</td></tr>
+    <tr><td>Props</td><td>Destructured directly in function signature, validated with <code>prop-types</code></td></tr>
+  </table>
+
+  <h3>Correct Component Pattern</h3>
+  <pre><span class="comment">// ✅ Correct — functional, destructured props, conditional render</span>
+<span class="kw">const</span> <span class="fn">CampaignCard</span> = ({ campaign, onApply }) => {
+  <span class="kw">const</span> { title, niche, budgetPKR, status } = campaign;
+
+  <span class="kw">return</span> (
+    &lt;div className=<span class="str">"campaign-card"</span>&gt;
+      &lt;h3&gt;{title}&lt;/h3&gt;
+      &lt;span&gt;{niche} — PKR {budgetPKR.toLocaleString()}&lt;/span&gt;
+      {status === <span class="str">'PUBLISHED'</span> &amp;&amp; (
+        &lt;button onClick={() =&gt; onApply(campaign.id)}&gt;Apply&lt;/button&gt;
+      )}
+    &lt;/div&gt;
+  );
+};
+
+<span class="kw">export default</span> CampaignCard;</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>9. Database / Sequelize Standards</h2>
+  <table>
+    <tr><th>Convention</th><th>Example</th></tr>
+    <tr><td>Model definition</td><td><code>sequelize.define('User', { ... })</code></td></tr>
+    <tr><td>Associations</td><td>Declared in <code>src/models/index.js</code></td></tr>
+    <tr><td>Schema changes</td><td>Always via migration files in <code>database/migrations/</code></td></tr>
+    <tr><td>Demo data</td><td><code>database/seeders/</code> via <code>npx sequelize-cli db:seed:all</code></td></tr>
+    <tr><td>Timestamps</td><td>Auto-managed by Sequelize (<code>createdAt</code>, <code>updatedAt</code>)</td></tr>
+  </table>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>10. Comments Policy</h2>
+  <pre><span class="comment">// ✅ Acceptable — explains a non-obvious constraint</span>
+<span class="comment">// bcrypt cost factor 12 matches production; do not lower for tests</span>
+<span class="kw">const</span> hash = <span class="ok">await</span> bcrypt.hash(password, 12);
+
+<span class="comment">// ❌ Avoid — obvious from the code itself</span>
+<span class="comment">// Get the user by id</span>
+<span class="kw">const</span> user = <span class="ok">await</span> User.findByPk(id);</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>11. ESLint Configuration</h2>
+  <pre>{
+  <span class="str">"extends"</span>: [<span class="str">"airbnb-base"</span>],
+  <span class="str">"env"</span>: {
+    <span class="str">"node"</span>: <span class="kw">true</span>,
+    <span class="str">"es2021"</span>: <span class="kw">true</span>
+  },
+  <span class="str">"rules"</span>: {
+    <span class="str">"no-console"</span>: <span class="str">"warn"</span>,
+    <span class="str">"no-unused-vars"</span>: <span class="str">"error"</span>,
+    <span class="str">"prefer-const"</span>: <span class="str">"error"</span>,
+    <span class="str">"arrow-body-style"</span>: [<span class="str">"error"</span>, <span class="str">"as-needed"</span>]
+  }
+}</pre>
+
+  <!-- ════════════════════════════════════════════ -->
+  <h2>12. Git Commit Convention</h2>
+  <table>
+    <tr><th>Type</th><th>When to use</th><th>Example</th></tr>
+    <tr><td><code>feat</code></td><td>New feature or endpoint</td><td><code>feat(campaigns): add creator apply endpoint</code></td></tr>
+    <tr><td><code>fix</code></td><td>Bug fix</td><td><code>fix(auth): return 409 on duplicate email</code></td></tr>
+    <tr><td><code>refactor</code></td><td>Code change, no behaviour change</td><td><code>refactor: extract email service</code></td></tr>
+    <tr><td><code>test</code></td><td>Adding/updating tests</td><td><code>test: add campaign integration tests</code></td></tr>
+    <tr><td><code>docs</code></td><td>Documentation only</td><td><code>docs: update API route table</code></td></tr>
+    <tr><td><code>chore</code></td><td>Config, dependencies</td><td><code>chore: upgrade sequelize to 6.37.3</code></td></tr>
+  </table>
+
+</div>
+</body>
+</html>

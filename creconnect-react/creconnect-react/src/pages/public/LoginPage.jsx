@@ -131,18 +131,39 @@ export default function LoginPage() {
         )}
 
         {/* Error */}
-        {error && (
-          <div
-            className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm"
-            style={{ background: 'rgba(240,68,95,0.08)', border: '1px solid rgba(240,68,95,0.2)' }}
-          >
-            <span className="text-danger flex-shrink-0 mt-0.5">⚠</span>
-            <div>
-              <p className="text-danger font-medium">{isOfflineError ? 'Server offline' : 'Sign-in failed'}</p>
-              <p className="text-fg-muted text-xs mt-0.5">{error}</p>
+        {error && (() => {
+          const isRoleError = error.toLowerCase().includes('switch to the');
+          const wrongRole   = role === 'creator' ? 'brand' : 'creator';
+          return (
+            <div
+              className="flex items-start gap-2 px-4 py-3 rounded-xl text-sm"
+              style={isRoleError
+                ? { background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)' }
+                : { background: 'rgba(240,68,95,0.08)', border: '1px solid rgba(240,68,95,0.2)' }
+              }
+            >
+              <span className="flex-shrink-0 mt-0.5" style={{ color: isRoleError ? '#eab308' : 'var(--color-danger)' }}>
+                {isRoleError ? '⚠' : '⊗'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium" style={{ color: isRoleError ? '#eab308' : 'var(--color-danger)' }}>
+                  {isRoleError ? 'Wrong tab' : isOfflineError ? 'Server offline' : 'Sign-in failed'}
+                </p>
+                <p className="text-fg-muted text-xs mt-0.5">{error}</p>
+                {isRoleError && (
+                  <button
+                    type="button"
+                    onClick={() => { clearError(); setRole(wrongRole); }}
+                    className="mt-2 text-xs font-semibold px-3 py-1 rounded-lg transition-all hover:scale-105"
+                    style={{ background: 'rgba(109,92,255,0.12)', color: 'var(--brand-400)', border: '1px solid rgba(109,92,255,0.25)' }}
+                  >
+                    Switch to {wrongRole.charAt(0).toUpperCase() + wrongRole.slice(1)} tab →
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">

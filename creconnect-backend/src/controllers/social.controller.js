@@ -4,16 +4,25 @@ const jwt     = require('jsonwebtoken');
 const { Op }  = require('sequelize');
 const { CreatorProfile, BrandProfile, SocialPlatform, SocialPost } = require('../models');
 const { JWT_ACCESS_SECRET, FRONTEND_URL } = require('../config/env');
-const { fetchPlatformProfile, fetchPlatformMedia, exchangeInstagramLongLivedToken } = require('../services/socialMedia.service');
+const { fetchPlatformProfile, fetchPlatformMedia, exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken } = require('../services/socialMedia.service');
 
 const CALLBACK_BASE = process.env.BACKEND_URL || 'http://localhost:5000';
 
+const PLATFORM_CALLBACK_OVERRIDES = {
+  FACEBOOK: process.env.FACEBOOK_CALLBACK_URL,
+};
+
+function callbackUrl(platform) {
+  return PLATFORM_CALLBACK_OVERRIDES[platform] ||
+    `${CALLBACK_BASE}/api/v1/social/${platform.toLowerCase()}/callback`;
+}
+
 const PLATFORMS = {
   INSTAGRAM: { authUrl: 'https://api.instagram.com/oauth/authorize',       tokenUrl: 'https://api.instagram.com/oauth/access_token',         clientId: process.env.INSTAGRAM_CLIENT_ID, secret: process.env.INSTAGRAM_CLIENT_SECRET, scope: 'user_profile,user_media' },
-  TIKTOK:    { authUrl: 'https://www.tiktok.com/v2/auth/authorize/',        tokenUrl: 'https://open.tiktokapis.com/v2/oauth/token/',           clientId: process.env.TIKTOK_CLIENT_KEY,   secret: process.env.TIKTOK_CLIENT_SECRET,   scope: 'user.info.basic,video.list' },
-  YOUTUBE:   { authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',     tokenUrl: 'https://oauth2.googleapis.com/token',                   clientId: process.env.GOOGLE_CLIENT_ID,    secret: process.env.GOOGLE_CLIENT_SECRET,   scope: 'https://www.googleapis.com/auth/youtube.readonly', extra: { access_type: 'offline', prompt: 'consent' } },
+  // TIKTOK:    { authUrl: 'https://www.tiktok.com/v2/auth/authorize/',        tokenUrl: 'https://open.tiktokapis.com/v2/oauth/token/',           clientId: process.env.TIKTOK_CLIENT_KEY,   secret: process.env.TIKTOK_CLIENT_SECRET,   scope: 'user.info.basic,video.list' },
+  // YOUTUBE:   { authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',     tokenUrl: 'https://oauth2.googleapis.com/token',                   clientId: process.env.GOOGLE_CLIENT_ID,    secret: process.env.GOOGLE_CLIENT_SECRET,   scope: 'https://www.googleapis.com/auth/youtube.readonly', extra: { access_type: 'offline', prompt: 'consent' } },
   LINKEDIN:  { authUrl: 'https://www.linkedin.com/oauth/v2/authorization',  tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',         clientId: process.env.LINKEDIN_CLIENT_ID,  secret: process.env.LINKEDIN_CLIENT_SECRET, scope: 'r_liteprofile r_emailaddress' },
-  FACEBOOK:  { authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',      tokenUrl: 'https://graph.facebook.com/v21.0/oauth/access_token',   clientId: process.env.FACEBOOK_CLIENT_ID,  secret: process.env.FACEBOOK_CLIENT_SECRET, scope: 'pages_read_engagement,instagram_basic' },
+  FACEBOOK:  { authUrl: 'https://www.facebook.com/v25.0/dialog/oauth',      tokenUrl: 'https://graph.facebook.com/v25.0/oauth/access_token',   clientId: process.env.FACEBOOK_CLIENT_ID,  secret: process.env.FACEBOOK_CLIENT_SECRET, scope: 'email,public_profile', extra: { display: 'popup' } },
   TWITTER:   { authUrl: 'https://twitter.com/i/oauth2/authorize',           tokenUrl: 'https://api.twitter.com/2/oauth2/token',                clientId: process.env.TWITTER_CLIENT_ID,   secret: process.env.TWITTER_CLIENT_SECRET,  scope: 'tweet.read users.read follows.read', pkce: true },
 };
 
@@ -29,7 +38,7 @@ function popupHtml(payload, error = null) {
 </head><body><div class="box">
 ${error ? `<div class="icon">⚠</div><p>${String(error).replace(/</g,'&lt;')}</p>` : `<div class="icon">✓</div><p>Connected! Closing…</p>`}
 </div>
-<script>try{window.opener.postMessage(${json},'*')}catch(e){}setTimeout(function(){window.close()},800)</script>
+<script>try{window.opener.postMessage(${json},'${FRONTEND_URL}')}catch(e){}setTimeout(function(){window.close()},800)</script>
 </body></html>`;
 }
 
@@ -39,48 +48,83 @@ async function getAuthUrl(req, res) {
   if (!cfg) return res.status(400).json({ success: false, message: 'Unsupported platform' });
   if (!cfg.clientId || !cfg.secret) return res.json({ success: true, data: { url: null, configured: false } });
 
-  const callbackUrl = `${CALLBACK_BASE}/api/v1/social/${platform.toLowerCase()}/callback`;
+  const cb = callbackUrl(platform);
+  console.log(`\n[${platform}] Auth URL requested`);
+  console.log(`[${platform}] Redirect URI:`, cb);
   let state = encodeState({ userId: req.user.id, role: req.user.role, platform });
-  const params = new URLSearchParams({ client_id: cfg.clientId, redirect_uri: callbackUrl, response_type: 'code', scope: cfg.scope, state, ...(cfg.extra ?? {}) });
+  const params = new URLSearchParams({ client_id: cfg.clientId, redirect_uri: cb, response_type: 'code', scope: cfg.scope, state, ...(cfg.extra ?? {}) });
 
   if (cfg.pkce) {
     const v = pkceVerifier(); const c = pkceChallenge(v);
     params.set('code_challenge', c); params.set('code_challenge_method', 'S256');
     params.set('state', encodeState({ userId: req.user.id, role: req.user.role, platform, verifier: v }));
   }
-  res.json({ success: true, data: { url: `${cfg.authUrl}?${params}`, configured: true } });
+  const fullUrl = `${cfg.authUrl}?${params}`;
+  console.log(`[${platform}] Full OAuth URL:`, fullUrl);
+  res.json({ success: true, data: { url: fullUrl, configured: true } });
 }
 
 async function handleCallback(req, res) {
   const platform = req.params.platform.toUpperCase();
   const cfg = PLATFORMS[platform];
   const { code, state, error: oauthError } = req.query;
-  if (oauthError) return res.send(popupHtml(null, `Authorization denied: ${oauthError}`));
+
+  console.log('==================================================');
+  console.log(`[${platform}] ── OAuth Callback HIT ──────────────`);
+  console.log(`[${platform}] Query params:`, req.query);
+
+  if (oauthError) {
+    console.error(`[${platform}] OAuth denied:`, oauthError);
+    return res.send(popupHtml(null, `Authorization denied: ${oauthError}`));
+  }
   if (!cfg) return res.send(popupHtml(null, 'Unsupported platform.'));
 
   let stateData;
-  try { stateData = decodeState(state); } catch { return res.send(popupHtml(null, 'Invalid state — please try again.')); }
+  try { stateData = decodeState(state); } catch {
+    console.error(`[${platform}] Invalid state token`);
+    return res.send(popupHtml(null, 'Invalid state — please try again.'));
+  }
+  console.log(`[${platform}] State decoded:`, { userId: stateData.userId, role: stateData.role });
 
-  const callbackUrl = `${CALLBACK_BASE}/api/v1/social/${platform.toLowerCase()}/callback`;
+  const cb = callbackUrl(platform);
+  console.log(`[${platform}] Callback URL used:`, cb);
+
   try {
-    const tokenParams = { client_id: cfg.clientId, client_secret: cfg.secret, code, redirect_uri: callbackUrl, grant_type: 'authorization_code', ...(cfg.pkce && stateData.verifier ? { code_verifier: stateData.verifier } : {}) };
+    const tokenParams = { client_id: cfg.clientId, client_secret: cfg.secret, code, redirect_uri: cb, grant_type: 'authorization_code', ...(cfg.pkce && stateData.verifier ? { code_verifier: stateData.verifier } : {}) };
     let accessToken, refreshToken, expiresIn;
 
     if (platform === 'TWITTER') {
       const creds = Buffer.from(`${cfg.clientId}:${cfg.secret}`).toString('base64');
       const { data } = await axios.post(cfg.tokenUrl, new URLSearchParams(tokenParams), { headers: { Authorization: `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded' } });
+      console.log(`[${platform}] Token response:`, data);
       accessToken = data.access_token; refreshToken = data.refresh_token ?? null; expiresIn = data.expires_in ?? 7200;
     } else {
       const { data } = await axios.post(cfg.tokenUrl, new URLSearchParams(tokenParams), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      console.log(`[${platform}] Token response:`, data);
       accessToken = data.access_token; refreshToken = data.refresh_token ?? null; expiresIn = data.expires_in ?? 3600;
     }
 
     if (platform === 'INSTAGRAM') {
-      try { const ll = await exchangeInstagramLongLivedToken(accessToken); accessToken = ll.accessToken; expiresIn = ll.expiresInSecs; } catch {}
+      try {
+        const ll = await exchangeInstagramLongLivedToken(accessToken);
+        console.log(`[${platform}] Long-lived token exchanged, expires in ${ll.expiresInSecs}s`);
+        accessToken = ll.accessToken; expiresIn = ll.expiresInSecs;
+      } catch (e) { console.warn(`[${platform}] Long-lived token exchange failed:`, e?.message); }
+    }
+
+    if (platform === 'FACEBOOK') {
+      try {
+        const ll = await exchangeFacebookLongLivedToken(accessToken);
+        console.log(`[${platform}] Long-lived token exchanged, expires in ${ll.expiresInSecs}s`);
+        accessToken = ll.accessToken; expiresIn = ll.expiresInSecs;
+      } catch (e) { console.warn(`[${platform}] Long-lived token exchange failed:`, e?.message); }
     }
 
     const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+    console.log(`[${platform}] Fetching platform profile…`);
     const profile = await fetchPlatformProfile(platform, accessToken);
+    console.log(`[${platform}] Profile:`, profile);
+
     const { userId, role } = stateData;
     let platformRecord = null;
 
@@ -89,17 +133,22 @@ async function handleCallback(req, res) {
       if (!creator) return res.send(popupHtml(null, 'Creator profile not found.'));
       await SocialPlatform.destroy({ where: { creatorId: creator.id, name: platform } });
       platformRecord = await SocialPlatform.create({ creatorId: creator.id, name: platform, handle: profile.handle, followerCount: profile.followerCount ?? 0, mediaCount: profile.mediaCount ?? 0, profilePictureUrl: profile.profilePictureUrl ?? null, platformUserId: profile.platformUserId ?? null, accessToken, refreshToken, tokenExpiresAt, isConnected: true, lastSyncedAt: new Date() });
+      console.log(`[${platform}] Platform record saved, id:`, platformRecord.id);
       try {
         const posts = await fetchPlatformMedia(platform, accessToken, profile.platformUserId);
+        console.log(`[${platform}] Media fetched: ${posts.length} posts`);
         if (posts.length) await SocialPost.bulkCreate(posts.map((p) => ({ ...p, platformId: platformRecord.id })), { updateOnDuplicate: ['caption','mediaUrl','thumbnailUrl','permalink','likeCount','commentCount','viewCount','shareCount','updatedAt'], ignoreDuplicates: false });
-      } catch (e) { console.warn(`Media sync failed for ${platform}:`, e?.message); }
+      } catch (e) { console.warn(`[${platform}] Media sync failed:`, e?.message); }
     } else if (role === 'BRAND') {
       const fm = { TWITTER:'twitter', INSTAGRAM:'instagram', TIKTOK:'tiktok', YOUTUBE:'youtube', LINKEDIN:'linkedin', FACEBOOK:'facebook' };
       if (fm[platform]) await BrandProfile.update({ [fm[platform]]: profile.handle }, { where: { userId } });
+      console.log(`[${platform}] Brand profile updated with handle:`, profile.handle);
     }
 
+    console.log(`[${platform}] ✓ Connection successful`);
     res.send(popupHtml({ platform, handle: profile.handle, followerCount: profile.followerCount ?? 0, profilePictureUrl: profile.profilePictureUrl ?? null, platformId: platformRecord?.id ?? null }));
   } catch (err) {
+    console.error(`[${platform}] ✗ Error:`, err?.response?.data || err?.message);
     res.send(popupHtml(null, err?.response?.data?.error_description || err?.message || 'Connection failed'));
   }
 }

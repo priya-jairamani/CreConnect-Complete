@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 
 export default function PartnershipTimelineSection({ timeline }) {
+  if (!timeline) return null;
   return (
     <ol className="relative ml-3 space-y-6 border-l" style={{ borderColor: 'var(--border)' }}>
       {timeline.map((event) => (

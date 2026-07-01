@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>A4 – User Manual | CreConnect</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13.5px;color:#1a1a2e;background:#fff;line-height:1.7}
+  .page{max-width:920px;margin:0 auto;padding:48px 56px}
+  /* Cover */
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:60px 56px 48px;border-radius:12px;margin-bottom:40px}
+  .cover .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.65;margin-bottom:12px}
+  .cover h1{font-size:32px;font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+  .cover .sub{font-size:15px;opacity:.75;margin-bottom:28px}
+  .cover-meta{display:flex;gap:32px;flex-wrap:wrap}
+  .cover-meta span{font-size:12px;opacity:.7}
+  .cover-meta strong{opacity:1;color:#a78bfa}
+  /* TOC */
+  .toc{background:#f8f8fc;border:1px solid #e5e7eb;border-radius:10px;padding:24px 28px;margin:32px 0}
+  .toc h3{font-size:14px;font-weight:700;color:#1a1a2e;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px}
+  .toc ol{margin-left:20px}
+  .toc li{margin-bottom:6px;color:#4b5563;font-size:13px}
+  .toc a{color:#6d5cff;text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  /* Headings */
+  h2{font-size:20px;font-weight:700;color:#1a1a2e;margin:44px 0 16px;padding-bottom:9px;border-bottom:2px solid #e9e9f0}
+  h3{font-size:15px;font-weight:600;color:#3730a3;margin:26px 0 12px}
+  h4{font-size:13px;font-weight:600;color:#6d5cff;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+  /* Text */
+  p{margin-bottom:12px;color:#374151}
+  ul,ol{margin:8px 0 16px 22px}
+  li{margin-bottom:6px;color:#374151}
+  strong{color:#1a1a2e}
+  /* Tables */
+  table{width:100%;border-collapse:collapse;margin:12px 0 22px;font-size:12.5px}
+  th{background:#1a1a2e;color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:12px}
+  td{padding:8px 12px;border-bottom:1px solid #e9e9f0;vertical-align:top}
+  tr:nth-child(even) td{background:#f8f8fc}
+  code{font-family:'Courier New',monospace;font-size:12px;background:#f1f0f8;border-radius:4px;padding:2px 6px;color:#2d2d6b}
+  /* Screenshots */
+  .screen{margin:18px 0 28px}
+  .screen img{width:100%;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.08);display:block}
+  .screen .caption{font-size:12px;color:#6b7280;margin-top:8px;padding:8px 12px;background:#f8f8fc;border-radius:0 0 8px 8px;border:1px solid #e5e7eb;border-top:none}
+  .screen .caption strong{color:#374151}
+  .screen-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:18px 0 28px}
+  .screen-2 .screen{margin:0}
+  /* Steps */
+  .steps{counter-reset:step;list-style:none;margin:12px 0 20px 0}
+  .steps li{counter-increment:step;padding:10px 12px 10px 48px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151}
+  .steps li::before{content:counter(step);position:absolute;left:10px;top:8px;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6d5cff,#3730a3);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .steps li:last-child{border-bottom:none}
+  /* Callouts */
+  .note{background:#f0f9ff;border-left:4px solid #0ea5e9;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0;font-size:12.5px}
+  .warn{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0;font-size:12.5px}
+  .tip{background:#f0fdf4;border-left:4px solid #22c55e;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0;font-size:12.5px}
+  /* Role badges */
+  .role-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+  .badge-public{background:#e0f2fe;color:#0369a1}
+  .badge-brand{background:#ede9fe;color:#5b21b6}
+  .badge-creator{background:#d1fae5;color:#065f46}
+  .badge-admin{background:#fef3c7;color:#92400e}
+  /* Divider */
+  hr{border:none;border-top:1px solid #e9e9f0;margin:32px 0}
+  @media print{body{font-size:12px}.page{padding:24px 32px}.screen-2{grid-template-columns:1fr 1fr}h2{margin-top:32px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="tag">A4 — Technical Documents</div>
+    <h1>User Manual</h1>
+    <div class="sub">CreConnect — Influencer–Brand Collaboration Platform</div>
+    <div class="cover-meta">
+      <span><strong>Version:</strong> 1.0</span>
+      <span><strong>Audience:</strong> Creators, Brands, Administrators</span>
+      <span><strong>Support:</strong> creconnect2@gmail.com</span>
+      <span><strong>Date:</strong> June 2026</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+      <li><a href="#s1">Getting Started — Accessing the Application</a></li>
+      <li><a href="#s2">Registration — Creating Your Account</a></li>
+      <li><a href="#s3">Login &amp; Password Recovery</a></li>
+      <li><a href="#s4">Brand Workflow — Campaigns, Discovery, Collaboration</a></li>
+      <li><a href="#s5">Creator Workflow — Profile, Browse, Apply</a></li>
+      <li><a href="#s6">Real-Time Messaging</a></li>
+      <li><a href="#s7">Notifications</a></li>
+      <li><a href="#s8">Admin Panel</a></li>
+      <li><a href="#s9">Troubleshooting</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s1">1. Getting Started</h2>
+
+  <h3>1.1 System Requirements</h3>
+  <table>
+    <tr><th>Component</th><th>Requirement</th></tr>
+    <tr><td>Browser</td><td>Google Chrome 110+, Firefox 110+, Edge 110+, Safari 16+</td></tr>
+    <tr><td>Internet</td><td>Stable connection required (real-time messaging uses WebSockets)</td></tr>
+    <tr><td>Screen width</td><td>Minimum 360 px (mobile supported)</td></tr>
+  </table>
+
+  <h3>1.2 Opening the Application</h3>
+  <p>Open your browser and navigate to:</p>
+  <p><code>http://localhost:3000</code></p>
+  <p>A short splash animation plays, then the <strong>Landing Page</strong> appears.</p>
+
+  <div class="screen">
+    <img src="screenshots/landing_page.png" alt="CreConnect Landing Page"/>
+    <div class="caption">
+      <strong>Figure 1.1 — Landing Page (<code>/</code>)</strong>
+      The home screen displays platform stats (12K+ creators, 800+ brands), feature highlights, AI matching overview, pricing tiers, testimonials, and a call-to-action to register.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s2">2. Registration</h2>
+  <span class="role-badge badge-public">Public — No Login Required</span>
+
+  <h3>2.1 Choosing Your Role</h3>
+  <ol class="steps">
+    <li>Click <strong>Get started</strong> on the Landing Page (top-right button).</li>
+    <li>The <strong>Role Selection</strong> screen appears. Choose:<br>
+        • <strong>Creator</strong> — influencer, content creator, social media personality<br>
+        • <strong>Brand</strong> — business, company, or marketing team</li>
+    <li>Click your role card to continue to the sign-up form.</li>
+  </ol>
+
+  <div class="screen">
+    <img src="screenshots/role_selection.png" alt="Role Selection"/>
+    <div class="caption">
+      <strong>Figure 2.1 — Role Selection (<code>/signup</code>)</strong>
+      Two cards — Creator and Brand — allow the user to select their account type before registration.
+    </div>
+  </div>
+
+  <h3>2.2 Creator Registration</h3>
+  <div class="screen-2">
+    <div class="screen">
+      <img src="screenshots/creator_signup.png" alt="Creator Sign-Up"/>
+      <div class="caption">
+        <strong>Figure 2.2 — Creator Sign-Up (<code>/signup/creator</code>)</strong>
+        Form fields: Display Name, Username, Email, Password, and optional social platform links.
+      </div>
+    </div>
+    <div class="screen">
+      <img src="screenshots/brand_signup.png" alt="Brand Sign-Up"/>
+      <div class="caption">
+        <strong>Figure 2.3 — Brand Sign-Up (<code>/signup/brand</code>)</strong>
+        Form fields: Company Name, Contact Name, Industry (dropdown), Email, Password.
+      </div>
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>Fill in all required fields (marked with *).</li>
+    <li>Password must be at least 8 characters with a number and a symbol.</li>
+    <li>Click <strong>Create Account</strong>.</li>
+    <li>Check your email inbox for a <strong>verification email</strong> from CreConnect.</li>
+    <li>Click the link in the email to verify your address.</li>
+    <li>Your account is now <em>Pending Admin Approval</em>. You will receive a second email once approved.</li>
+  </ol>
+
+  <div class="note"><strong>Note:</strong> Admin approval is required before you can log in. Approval typically happens within 24 hours. Contact <code>creconnect2@gmail.com</code> if delayed.</div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s3">3. Login &amp; Password Recovery</h2>
+  <span class="role-badge badge-public">Public — No Login Required</span>
+
+  <h3>3.1 Logging In</h3>
+  <div class="screen">
+    <img src="screenshots/login_page.png" alt="Login Page"/>
+    <div class="caption">
+      <strong>Figure 3.1 — Login Page (<code>/login</code>)</strong>
+      Select your role (Creator / Brand toggle), enter email and password, and click Sign in. Google OAuth is also available. A server status indicator shows if the backend is reachable.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>Navigate to <code>/login</code> or click <strong>Log in</strong> in the navigation bar.</li>
+    <li>Select your role using the <strong>Creator / Brand</strong> toggle.</li>
+    <li>Enter your <strong>Email Address</strong> and <strong>Password</strong>.</li>
+    <li>Click <strong>Sign in</strong>.</li>
+    <li>You are redirected to your role-specific dashboard.</li>
+  </ol>
+
+  <h3>3.2 Forgot Password</h3>
+  <div class="screen">
+    <img src="screenshots/forgot_password.png" alt="Forgot Password"/>
+    <div class="caption">
+      <strong>Figure 3.2 — Forgot Password (<code>/forgot-password</code>)</strong>
+      Enter your registered email. A 6-digit OTP is sent to your inbox. Enter the OTP, then set a new password.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>On the Login page, click <strong>Forgot password?</strong></li>
+    <li>Enter your registered email address and click <strong>Send OTP</strong>.</li>
+    <li>Check your email for a 6-digit One-Time Password (valid for a limited time).</li>
+    <li>Enter the OTP on the verification screen.</li>
+    <li>Type and confirm your new password, then click <strong>Reset Password</strong>.</li>
+    <li>Log in with your new password.</li>
+  </ol>
+
+  <div class="note"><strong>OTP expired?</strong> Click <strong>Resend OTP</strong> on the verification screen to receive a fresh code.</div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s4">4. Brand Workflow</h2>
+  <span class="role-badge badge-brand">Brand Role Required</span>
+
+  <h3>4.1 Brand Dashboard</h3>
+  <div class="screen">
+    <img src="screenshots/brand_dashboard.png" alt="Brand Dashboard"/>
+    <div class="caption">
+      <strong>Figure 4.1 — Brand Dashboard (<code>/brand/dashboard</code>)</strong>
+      At-a-glance KPI cards: Total Campaigns, Active Collaborations, Pending Offers, Messages Waiting. Below: Revenue spend chart, Audience Reach tracker, and AI-recommended creators section. Left sidebar provides navigation to all Brand features.
+    </div>
+  </div>
+
+  <h3>4.2 Creating a Campaign</h3>
+  <div class="screen">
+    <img src="screenshots/brand_campaigns.png" alt="Brand Campaigns"/>
+    <div class="caption">
+      <strong>Figure 4.2 — Campaigns (<code>/brand/campaigns</code>)</strong>
+      Lists all campaigns with status badges (Draft / Published / Closed). The <strong>+ New Campaign</strong> button opens the campaign creation form.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>In the sidebar, click <strong>Campaigns</strong>.</li>
+    <li>Click the <strong>+ New Campaign</strong> button (top right).</li>
+    <li>Fill in the campaign form:</li>
+  </ol>
+
+  <table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>Title</td><td>Short, descriptive campaign name (e.g., "Summer Beauty Launch")</td></tr>
+    <tr><td>Description</td><td>Full brief for creators — explain the product, tone, and goals</td></tr>
+    <tr><td>Objective</td><td>AWARENESS, ENGAGEMENT, SALES, or TRAFFIC</td></tr>
+    <tr><td>Niche</td><td>TECH, FASHION, FOOD, FITNESS, BEAUTY, LIFESTYLE, GAMING, etc.</td></tr>
+    <tr><td>Platforms</td><td>Select: Instagram, TikTok, YouTube, Twitter, Facebook (multi-select)</td></tr>
+    <tr><td>Budget Type</td><td>FIXED (set amount) or RANGE (min–max)</td></tr>
+    <tr><td>Budget (PKR)</td><td>Amount you are willing to pay per creator</td></tr>
+    <tr><td>Deliverables</td><td>Number of Reels, Posts, Stories, Videos, Livestreams required</td></tr>
+    <tr><td>Status</td><td>DRAFT (save privately) or PUBLISHED (visible to creators immediately)</td></tr>
+  </table>
+
+  <ol class="steps" style="counter-reset:step 3">
+    <li>Click <strong>Publish Campaign</strong>. The campaign is now live in the creator discovery feed.</li>
+  </ol>
+
+  <h3>4.3 Discovering &amp; Searching Creators</h3>
+  <div class="screen">
+    <img src="screenshots/brand_search_creators.png" alt="Discover Creators"/>
+    <div class="caption">
+      <strong>Figure 4.3 — Discover Creators (<code>/brand/search</code>)</strong>
+      AI Match and Saved toggles at top right. Niche filter chips (All, Fashion, Gaming, Food, Tech, Beauty, Lifestyle, Travel). Keyword search bar with example suggestions.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>Click <strong>Search Creators</strong> in the sidebar.</li>
+    <li>Use the niche filter chips to narrow by content category.</li>
+    <li>Type in the search bar to filter by name, niche, or location.</li>
+    <li>Click <strong>AI Match</strong> to see creators ranked by your campaign compatibility score.</li>
+    <li>Click a creator card to view their full profile and portfolio.</li>
+    <li>Click <strong>Send Collab Request</strong> to invite them to collaborate.</li>
+  </ol>
+
+  <h3>4.4 Managing Collaborations</h3>
+  <div class="screen">
+    <img src="screenshots/brand_collaborations.png" alt="Brand Collaborations"/>
+    <div class="caption">
+      <strong>Figure 4.4 — Collaborations (<code>/brand/collaborations</code>)</strong>
+      Lists all partnerships. Accept or decline applications from creators. Track status: Pending → Active → Completed.
+    </div>
+  </div>
+
+  <h3>4.5 Messaging</h3>
+  <div class="screen">
+    <img src="screenshots/brand_messages.png" alt="Brand Messages"/>
+    <div class="caption">
+      <strong>Figure 4.5 — Messages (<code>/brand/messages</code>)</strong>
+      Real-time conversation threads with creators powered by Socket.io. New messages appear instantly without page refresh. Unread threads are highlighted.
+    </div>
+  </div>
+
+  <h3>4.6 Notifications</h3>
+  <div class="screen">
+    <img src="screenshots/brand_notifications.png" alt="Brand Notifications"/>
+    <div class="caption">
+      <strong>Figure 4.6 — Notifications (<code>/brand/notifications</code>)</strong>
+      In-app alerts for new creator applications, message received, collaboration status changes, and system events.
+    </div>
+  </div>
+
+  <h3>4.7 Brand Settings</h3>
+  <div class="screen">
+    <img src="screenshots/brand_settings.png" alt="Brand Settings"/>
+    <div class="caption">
+      <strong>Figure 4.7 — Settings (<code>/brand/settings</code>)</strong>
+      Update company profile (name, industry, logo, website), change password, manage notification preferences.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s5">5. Creator Workflow</h2>
+  <span class="role-badge badge-creator">Creator Role Required</span>
+
+  <h3>5.1 Creator Dashboard</h3>
+  <div class="screen">
+    <img src="screenshots/creator_dashboard.png" alt="Creator Dashboard"/>
+    <div class="caption">
+      <strong>Figure 5.1 — Creator Dashboard (<code>/creator/dashboard</code>)</strong>
+      KPI cards: Followers, Engagement Rate, Active Campaigns, Pending Offers. Below: Earnings chart (monthly), Quick Actions panel (Browse brands / My collaborations / Edit profile), and New Offers &amp; Pending list.
+    </div>
+  </div>
+
+  <h3>5.2 Completing Your Profile</h3>
+  <div class="screen">
+    <img src="screenshots/creator_profile.png" alt="Creator Profile"/>
+    <div class="caption">
+      <strong>Figure 5.2 — Creator Profile (<code>/creator/profile</code>)</strong>
+      Edit bio, niche tags, social platform handles (Instagram, TikTok, YouTube), location, and upload portfolio media. A complete profile increases discoverability by brands.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>Click <strong>Profile</strong> in the sidebar.</li>
+    <li>Click <strong>Edit Profile</strong>.</li>
+    <li>Fill in: Bio, Niche, Platform handles, Location.</li>
+    <li>Upload portfolio images or paste video links.</li>
+    <li>Click <strong>Save Profile</strong>.</li>
+  </ol>
+
+  <div class="tip"><strong>Tip:</strong> Brands filter by niche and platform when searching. Make sure your niche tags and platform handles are accurate to appear in relevant searches.</div>
+
+  <h3>5.3 Browsing &amp; Applying to Campaigns</h3>
+  <div class="screen">
+    <img src="screenshots/creator_campaigns.png" alt="Creator Campaigns"/>
+    <div class="caption">
+      <strong>Figure 5.3 — Browse Campaigns (<code>/creator/campaigns</code>)</strong>
+      Discover open brand campaigns. Filter by niche, platform, and budget range. Click any campaign card to read the full brief and apply.
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li>Click <strong>Campaigns</strong> in the sidebar.</li>
+    <li>Use filters to match your content category and platform.</li>
+    <li>Click a campaign card to read the full brief.</li>
+    <li>Click <strong>Apply Now</strong>.</li>
+    <li>Write your pitch note — explain why you are a great fit.</li>
+    <li>Click <strong>Submit Application</strong>.</li>
+    <li>Your application appears in <strong>Collaborations → Pending</strong>.</li>
+  </ol>
+
+  <h3>5.4 Tracking Collaborations</h3>
+  <div class="screen">
+    <img src="screenshots/creator_collaborations.png" alt="Creator Collaborations"/>
+    <div class="caption">
+      <strong>Figure 5.4 — Collaborations (<code>/creator/collaborations</code>)</strong>
+      Three-tab view: Pending (awaiting brand response), Active (accepted, in progress), Completed (finished).
+    </div>
+  </div>
+
+  <h3>5.5 Finding Brands</h3>
+  <div class="screen">
+    <img src="screenshots/creator_find_brands.png" alt="Find Brands"/>
+    <div class="caption">
+      <strong>Figure 5.5 — Find Brands (<code>/creator/find-brands</code>)</strong>
+      Browse brand profiles. Filter by industry and budget range. Click a brand card to view their profile and open campaigns.
+    </div>
+  </div>
+
+  <h3>5.6 Reviews</h3>
+  <div class="screen">
+    <img src="screenshots/creator_reviews.png" alt="Creator Reviews"/>
+    <div class="caption">
+      <strong>Figure 5.6 — Reviews (<code>/creator/reviews</code>)</strong>
+      Star ratings and written feedback received from brands after completed collaborations. Your average rating appears on your public creator profile.
+    </div>
+  </div>
+
+  <h3>5.7 Notifications</h3>
+  <div class="screen">
+    <img src="screenshots/creator_notifications.png" alt="Creator Notifications"/>
+    <div class="caption">
+      <strong>Figure 5.7 — Notifications (<code>/creator/notifications</code>)</strong>
+      Alerts for: new collaboration offers, application decisions (accepted / rejected), new messages, and system events.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s6">6. Real-Time Messaging</h2>
+
+  <p>CreConnect uses <strong>Socket.io</strong> for live, bidirectional messaging between brands and creators. Messages appear on both sides instantly — no page refresh is needed.</p>
+
+  <div class="screen-2">
+    <div class="screen">
+      <img src="screenshots/brand_messages.png" alt="Brand Messages"/>
+      <div class="caption"><strong>Brand Messages view</strong></div>
+    </div>
+    <div class="screen">
+      <img src="screenshots/creator_messages.png" alt="Creator Messages"/>
+      <div class="caption"><strong>Creator Messages view</strong></div>
+    </div>
+  </div>
+
+  <h3>Starting a Conversation</h3>
+  <p><strong>As a Brand:</strong> Go to a collaboration or creator profile → click <strong>Message Creator</strong>. A thread opens in the Messages section.</p>
+  <p><strong>As a Creator:</strong> Go to <strong>Messages</strong> in the sidebar. Threads with unread messages show a notification indicator.</p>
+
+  <h3>Sending Messages</h3>
+  <ol class="steps">
+    <li>Type your message in the text field at the bottom of the chat window.</li>
+    <li>Press <strong>Enter</strong> or click the send button.</li>
+    <li>The message appears instantly on both sides.</li>
+  </ol>
+
+  <div class="note"><strong>Note:</strong> If you go offline, you will receive an email notification for any messages sent while you were away.</div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s7">7. Notifications</h2>
+
+  <h3>7.1 In-App Notifications</h3>
+  <p>A <strong>bell icon</strong> in the top navigation shows a red count badge for unread alerts. Click to open the notification panel.</p>
+
+  <table>
+    <tr><th>Event</th><th>Who Receives It</th></tr>
+    <tr><td>New application to a campaign</td><td>Brand</td></tr>
+    <tr><td>Application accepted or rejected</td><td>Creator</td></tr>
+    <tr><td>New message received</td><td>Both parties</td></tr>
+    <tr><td>Collaboration marked complete</td><td>Both parties</td></tr>
+    <tr><td>Account approved by admin</td><td>New user</td></tr>
+    <tr><td>Reminder approaching deadline</td><td>Both parties</td></tr>
+  </table>
+
+  <h3>7.2 Email Notifications</h3>
+  <table>
+    <tr><th>Trigger</th><th>Recipient</th></tr>
+    <tr><td>Account registered</td><td>User — welcome email with email-verification link</td></tr>
+    <tr><td>Account approved</td><td>User — login invitation</td></tr>
+    <tr><td>New campaign application received</td><td>Brand</td></tr>
+    <tr><td>Application accepted/rejected</td><td>Creator</td></tr>
+    <tr><td>New message (if offline)</td><td>Both parties</td></tr>
+    <tr><td>Password reset OTP</td><td>User</td></tr>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s8">8. Admin Panel</h2>
+  <span class="role-badge badge-admin">Admin Role Required</span>
+
+  <div class="warn"><strong>Restricted Access:</strong> The Admin panel is only available to accounts with the ADMIN role. Contact your system administrator for access.</div>
+
+  <h3>8.1 Approving New Users</h3>
+  <ol class="steps">
+    <li>Log in with an ADMIN account and navigate to <strong>Admin Dashboard</strong>.</li>
+    <li>Click <strong>User Management</strong> in the sidebar.</li>
+    <li>Filter by status <strong>PENDING</strong> to see new registrations.</li>
+    <li>Click a user's name to review their details.</li>
+    <li>Click <strong>Approve</strong> — the user receives an email and can now log in.</li>
+    <li>Or click <strong>Reject</strong> — optionally enter a reason.</li>
+  </ol>
+
+  <h3>8.2 Running the AI Recommender</h3>
+  <ol class="steps">
+    <li>Go to <strong>Admin Dashboard</strong>.</li>
+    <li>Click <strong>Run AI Engine</strong> (or navigate to the AI Matching section).</li>
+    <li>The system computes match scores for all creator–brand pairs using the hybrid engine.</li>
+    <li>Results are stored in the <code>ai_matches</code> table.</li>
+    <li>Brands will now see AI-ranked creators on their Discover page with match percentages.</li>
+  </ol>
+
+  <h3>8.3 Viewing &amp; Acting on Reports</h3>
+  <ol class="steps">
+    <li>Click <strong>Reports</strong> in the admin sidebar.</li>
+    <li>View user-submitted reports (inappropriate content, spam).</li>
+    <li>Take action: <strong>Dismiss</strong>, <strong>Warn</strong>, or <strong>Suspend / Ban</strong> the reported user.</li>
+  </ol>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2 id="s9">9. Troubleshooting</h2>
+  <table>
+    <tr><th>Problem</th><th>Likely Cause</th><th>Solution</th></tr>
+    <tr>
+      <td>Cannot log in — wrong credentials</td>
+      <td>Incorrect email/password or unverified email</td>
+      <td>Use <strong>Forgot Password</strong> to reset; check inbox for verification email</td>
+    </tr>
+    <tr>
+      <td>Account says "Pending"</td>
+      <td>Admin has not yet approved the account</td>
+      <td>Wait for approval email; contact <code>creconnect2@gmail.com</code> if delayed beyond 24 hours</td>
+    </tr>
+    <tr>
+      <td>Messages not appearing in real time</td>
+      <td>Network connection dropped / WebSocket disconnected</td>
+      <td>Refresh the page; check your internet connection</td>
+    </tr>
+    <tr>
+      <td>Campaign not visible to creators</td>
+      <td>Campaign status is DRAFT</td>
+      <td>Go to Campaigns → Edit → change Status to <strong>PUBLISHED</strong></td>
+    </tr>
+    <tr>
+      <td>OTP expired before I entered it</td>
+      <td>OTP has a time limit</td>
+      <td>Click <strong>Resend OTP</strong> on the verification screen</td>
+    </tr>
+    <tr>
+      <td>Profile photo upload fails</td>
+      <td>File too large or wrong format</td>
+      <td>Use JPG or PNG under 5 MB</td>
+    </tr>
+    <tr>
+      <td>Apply button is greyed out</td>
+      <td>Already applied to this campaign</td>
+      <td>Check <strong>Collaborations → Pending</strong> for your existing application</td>
+    </tr>
+    <tr>
+      <td>Cannot see search results in Discover Creators</td>
+      <td>No creators registered yet / filters too narrow</td>
+      <td>Clear all filters and try a broader search</td>
+    </tr>
+    <tr>
+      <td>Server offline banner on login page</td>
+      <td>Backend server is not running</td>
+      <td>Use the demo accounts shown on the login page (Brand@123, Creator@123) to explore the app</td>
+    </tr>
+  </table>
+
+  <hr/>
+  <p style="text-align:center;color:#9ca3af;font-size:12px;">CreConnect User Manual v1.0 &nbsp;·&nbsp; June 2026 &nbsp;·&nbsp; Support: creconnect2@gmail.com</p>
+
+</div>
+</body>
+</html>

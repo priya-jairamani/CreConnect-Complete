@@ -1,7 +1,8 @@
 const { Op } = require('sequelize');
-const { BrandProfile, Campaign, Application, Collaboration, CreatorProfile, SocialPlatform, User } = require('../models');
+const { BrandProfile, Campaign, Application, Collaboration, CreatorProfile, SocialPlatform, User, AuditLog } = require('../models');
 const { NotFoundError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
+const { logActivity } = require('../utils/activity');
 
 async function getMyProfile(userId) {
   const profile = await BrandProfile.findOne({
@@ -16,6 +17,7 @@ async function updateMyProfile(userId, data) {
   const profile = await BrandProfile.findOne({ where: { userId } });
   if (!profile) throw new NotFoundError('Brand profile not found');
   await profile.update(data);
+  logActivity(userId, 'profile.updated', { entity: 'brand_profile', entityId: String(profile.id), meta: { fields: Object.keys(data) } });
   return profile.reload({
     include: [{ model: User, as: 'user', attributes: ['email', 'status', 'createdAt'] }],
   });
@@ -47,6 +49,19 @@ async function getMyCampaigns(userId, query) {
     offset,
     limit,
     order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Collaboration,
+        as: 'collaborations',
+        required: false,
+        where: { status: 'ACCEPTED' },
+        include: [{
+          model: CreatorProfile,
+          as: 'creator',
+          attributes: ['id', 'displayName', 'username', 'avatarUrl'],
+        }],
+      },
+    ],
   });
 
   return { items: rows, total: count, page, limit };
@@ -122,4 +137,19 @@ async function listBrands(query) {
   return { items: rows, total: count, page, limit };
 }
 
-module.exports = { getMyProfile, updateMyProfile, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands };
+async function getMyActivity(userId, query) {
+  const { offset, limit, page } = parsePagination(query, 50);
+  const where = { userId };
+  if (query.entity) where.entity = query.entity;
+
+  const { rows, count } = await AuditLog.findAndCountAll({
+    where,
+    offset,
+    limit,
+    order: [['createdAt', 'DESC']],
+  });
+
+  return { items: rows, total: count, page, limit };
+}
+
+module.exports = { getMyProfile, updateMyProfile, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands, getMyActivity };

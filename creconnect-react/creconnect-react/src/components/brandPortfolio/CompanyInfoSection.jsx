@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import Badge from '@/components/common/Badge';
 import PlatformIcon from '@/components/common/PlatformIcon';
+import { useCopy } from '@/hooks/useCopy';
 
 /* Platform URL builders ─── */
 const PLATFORM_URL_BUILDERS = {
@@ -28,24 +28,12 @@ InfoRow.propTypes = { icon: PropTypes.string.isRequired, label: PropTypes.string
 
 /* Social link card with Open + Copy actions ─── */
 function SocialLinkCard({ platform, handle }) {
-  const [copied, setCopied] = useState(false);
+  const { copy, copied } = useCopy();
 
   const safeHandle = typeof handle === 'string' ? handle : String(handle ?? '');
   const buildUrl = PLATFORM_URL_BUILDERS[platform];
   const url      = buildUrl && safeHandle ? buildUrl(safeHandle) : null;
   const label    = platform.charAt(0).toUpperCase() + platform.slice(1);
-
-  const handleOpen = () => {
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(url ?? safeHandle);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* noop */ }
-  };
 
   return (
     <div
@@ -59,16 +47,19 @@ function SocialLinkCard({ platform, handle }) {
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={handleCopy}
+          onClick={() => copy(url ?? safeHandle)}
           title="Copy link"
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-colors hover:text-fg"
-          style={{ background: 'var(--surface)', color: 'var(--fg-muted)' }}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all"
+          style={copied
+            ? { background: 'rgba(22,179,100,0.15)', color: '#16b364', border: '1px solid rgba(22,179,100,0.3)' }
+            : { background: 'var(--surface)', color: 'var(--fg-muted)' }
+          }
         >
           {copied ? '✓' : '⎘'}
         </button>
         {url && (
           <button
-            onClick={handleOpen}
+            onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}
             title="Open in new tab"
             className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-colors hover:text-fg"
             style={{ background: 'var(--surface)', color: 'var(--fg-muted)' }}
@@ -88,6 +79,7 @@ SocialLinkCard.propTypes = {
 const SOCIAL_PLATFORMS = ['instagram', 'facebook', 'linkedin', 'tiktok', 'youtube', 'x'];
 
 export default function CompanyInfoSection({ brand, meta, extras }) {
+  if (!brand || !meta || !extras) return null;
   // Only include platforms with a real string handle (guard against boolean values)
   const connectedSocials = SOCIAL_PLATFORMS.filter((p) => typeof extras.socialLinks?.[p] === 'string' && extras.socialLinks[p]);
 

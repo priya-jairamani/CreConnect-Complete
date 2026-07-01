@@ -34,6 +34,9 @@ export const ROUTES = {
   BRAND_REMINDERS:        '/brand/reminders',
   BRAND_NOTIFICATIONS:    '/brand/notifications',
   BRAND_MY_PORTFOLIO:     '/brand/portfolio',
+  BRAND_CREATOR_PROFILE:  '/brand/creator-profile',
+  BRAND_PAYMENTS:         '/brand/payments',
+  CREATOR_PAYMENTS:       '/creator/payments',
 
   /* ── Admin ── */
   ADMIN_LOGIN:          '/admin/login',

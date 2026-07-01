@@ -2,6 +2,7 @@ import PropTypes from 'prop-types';
 import ScoreRing from '@/components/common/ScoreRing';
 
 export default function CreatorFitSection({ fit }) {
+  if (!fit) return null;
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {fit.map((f) => (

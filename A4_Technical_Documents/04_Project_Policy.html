@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>A4 – Project Policy | CreConnect</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13.5px;color:#1a1a2e;background:#fff;line-height:1.65}
+  .page{max-width:900px;margin:0 auto;padding:48px 56px}
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:60px 56px 48px;border-radius:12px;margin-bottom:40px}
+  .cover .tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.65;margin-bottom:12px}
+  .cover h1{font-size:32px;font-weight:700;letter-spacing:-.5px;margin-bottom:8px}
+  .cover .sub{font-size:15px;opacity:.75;margin-bottom:28px}
+  .cover-meta{display:flex;gap:32px;flex-wrap:wrap}
+  .cover-meta span{font-size:12px;opacity:.7}
+  .cover-meta strong{opacity:1;color:#a78bfa}
+  h2{font-size:20px;font-weight:700;color:#1a1a2e;margin:36px 0 14px;padding-bottom:8px;border-bottom:2px solid #e9e9f0}
+  h3{font-size:15px;font-weight:600;color:#3730a3;margin:22px 0 10px}
+  h4{font-size:13px;font-weight:600;color:#6d5cff;margin:16px 0 8px}
+  p{margin-bottom:12px;color:#374151}
+  ul,ol{margin:8px 0 16px 22px}
+  li{margin-bottom:5px;color:#374151}
+  table{width:100%;border-collapse:collapse;margin:12px 0 24px;font-size:12.5px}
+  th{background:#1a1a2e;color:#fff;padding:9px 12px;text-align:left;font-weight:600;font-size:12px}
+  td{padding:8px 12px;border-bottom:1px solid #e9e9f0;vertical-align:top}
+  tr:nth-child(even) td{background:#f8f8fc}
+  code{font-family:'Courier New',monospace;font-size:12px;background:#f1f0f8;border-radius:4px;padding:2px 6px;color:#2d2d6b}
+  pre{font-family:'Courier New',monospace;font-size:12px;background:#0d0d1a;color:#c9d1d9;border-radius:8px;padding:16px 20px;overflow-x:auto;margin:10px 0 20px;border-left:3px solid #6d5cff;line-height:1.7}
+  .note{background:#f0f9ff;border-left:4px solid #0ea5e9;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0;font-size:12.5px}
+  .warn{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0;font-size:12.5px}
+  .branch-diagram{background:#0d0d1a;color:#c9d1d9;border-radius:8px;padding:16px 20px;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;margin:12px 0 20px}
+  .br-main{color:#f97316}
+  .br-dev{color:#22d3ee}
+  .br-feat{color:#a78bfa}
+  .br-fix{color:#4ade80}
+  .checklist{list-style:none;margin-left:0}
+  .checklist li{padding:5px 0;padding-left:22px;position:relative;color:#374151}
+  .checklist li::before{content:'☐';position:absolute;left:0;color:#6d5cff}
+  @media print{body{font-size:12px}.page{padding:24px 32px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div class="tag">A4 — Technical Documents</div>
+    <h1>Project Policy</h1>
+    <div class="sub">CreConnect — Influencer–Brand Collaboration Platform</div>
+    <div class="cover-meta">
+      <span><strong>Team Type:</strong> Student Project Team</span>
+      <span><strong>Version Control:</strong> Git / GitHub</span>
+      <span><strong>Methodology:</strong> Agile (2-week sprints)</span>
+      <span><strong>Date:</strong> June 2026</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>1. Meeting Schedule</h2>
+  <table>
+    <tr><th>Meeting Type</th><th>Frequency</th><th>Day &amp; Time</th><th>Platform</th><th>Purpose</th></tr>
+    <tr>
+      <td>Sprint Planning</td><td>Every 2 weeks</td><td>Monday 10:00 AM</td><td>In-person / Google Meet</td>
+      <td>Assign tasks for the upcoming sprint from the GitHub Issues backlog</td>
+    </tr>
+    <tr>
+      <td>Daily Stand-up</td><td>Daily (Mon–Fri)</td><td>9:00 AM, max 10 min</td><td>WhatsApp / Meet</td>
+      <td>Yesterday / Today / Blockers — each member max 2 minutes</td>
+    </tr>
+    <tr>
+      <td>Code Review Meeting</td><td>Weekly</td><td>Wednesday 2:00 PM</td><td>VS Code Live Share</td>
+      <td>Walk through open Pull Requests; discuss implementation decisions</td>
+    </tr>
+    <tr>
+      <td>Sprint Retrospective</td><td>Every 2 weeks</td><td>Friday 4:00 PM</td><td>Google Meet</td>
+      <td>What went well? What to improve? Update team norms</td>
+    </tr>
+    <tr>
+      <td>Documentation Review</td><td>Monthly</td><td>Last Friday</td><td>In-person</td>
+      <td>Ensure all A4 documents are up to date with code changes</td>
+    </tr>
+  </table>
+
+  <div class="note"><strong>Stand-up Rule:</strong> Blockers must be raised immediately — do not wait for the next meeting. Absences must be notified at least 1 hour in advance via WhatsApp.</div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>2. Git Branching Strategy</h2>
+  <p>The project uses a simplified <strong>Git Flow</strong> model with two long-lived branches and short-lived feature/fix branches.</p>
+
+  <div class="branch-diagram">
+<span class="br-main">main</span>          ─────────────────────────────────────▶  (stable, production-ready)
+                         ↑ merge via PR (releases only)
+<span class="br-dev">develop</span>       ──────────────────────────────────────▶  (integration branch)
+                  ↑ merge via PR after review
+<span class="br-feat">feature/*</span>   ──────────▶ (new features, short-lived)
+<span class="br-fix">fix/*</span>        ──────────▶ (bug fixes, short-lived)
+  </div>
+
+  <h3>2.1 Branch Types</h3>
+  <table>
+    <tr><th>Branch</th><th>Pattern</th><th>Created by</th><th>Merges into</th></tr>
+    <tr><td>Production</td><td><code>main</code></td><td>Team lead (protected)</td><td>—</td></tr>
+    <tr><td>Integration</td><td><code>develop</code></td><td>Team lead</td><td><code>main</code></td></tr>
+    <tr><td>Feature</td><td><code>feature/&lt;short-description&gt;</code></td><td>Any developer</td><td><code>develop</code></td></tr>
+    <tr><td>Bug fix</td><td><code>fix/&lt;short-description&gt;</code></td><td>Any developer</td><td><code>develop</code></td></tr>
+    <tr><td>Hotfix</td><td><code>hotfix/&lt;short-description&gt;</code></td><td>Team lead only</td><td><code>main</code> + <code>develop</code></td></tr>
+    <tr><td>Release</td><td><code>release/v&lt;x.y&gt;</code></td><td>Team lead only</td><td><code>main</code></td></tr>
+  </table>
+
+  <h3>2.2 Branch Naming Examples</h3>
+  <pre>feature/campaign-create-endpoint
+feature/creator-profile-page
+feature/ai-recommender-integration
+fix/jwt-refresh-token-expiry
+fix/duplicate-email-409-response
+hotfix/auth-middleware-null-crash
+release/v1.0</pre>
+
+  <h3>2.3 Feature Branch Workflow</h3>
+  <pre># 1. Pull latest develop
+git checkout develop
+git pull origin develop
+
+# 2. Create feature branch
+git checkout -b feature/your-feature-name
+
+# 3. Implement and commit (small, atomic commits)
+git add src/controllers/campaigns.controller.js
+git commit -m "feat: add campaign creation endpoint"
+
+# 4. Push and open Pull Request → develop
+git push origin feature/your-feature-name
+#   → Open PR on GitHub: feature/... → develop
+
+# 5. After PR approved and merged, delete the branch
+git branch -d feature/your-feature-name</pre>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>3. Code Review Process</h2>
+
+  <h3>3.1 Pull Request Rules</h3>
+  <table>
+    <tr><th>Rule</th><th>Detail</th></tr>
+    <tr><td>Minimum reviewers</td><td>1 — ideally the team member most familiar with the affected module</td></tr>
+    <tr><td>PR size</td><td>Target &lt; 400 changed lines. Break large features into smaller PRs</td></tr>
+    <tr><td>PR description</td><td>Must state: what changed, why it changed, and how to test it</td></tr>
+    <tr><td>Self-review</td><td>Author reviews their own diff before requesting review</td></tr>
+    <tr><td>No force-push</td><td><code>develop</code> and <code>main</code> are protected — no <code>git push --force</code></td></tr>
+    <tr><td>Tests required</td><td>New endpoints must include or update test cases in <code>tests/</code></td></tr>
+    <tr><td>Lint must pass</td><td><code>npm run lint</code> must exit with 0 errors before marking PR ready</td></tr>
+  </table>
+
+  <h3>3.2 Reviewer Checklist</h3>
+  <ul class="checklist">
+    <li>Code follows the Airbnb style guide (ESLint passes)</li>
+    <li>New routes are protected with the correct auth + role middleware</li>
+    <li>Inputs are validated using <code>express-validator</code></li>
+    <li>Errors are handled and passed to <code>next(err)</code></li>
+    <li>No N+1 Sequelize queries (check depth of <code>include</code>)</li>
+    <li>No hard-coded secrets — all env values read from <code>process.env</code></li>
+    <li>New environment variables are documented in <code>.env.example</code></li>
+    <li>Tests cover the happy path and at least one error case</li>
+  </ul>
+
+  <h3>3.3 GitHub PR Labels</h3>
+  <table>
+    <tr><th>Label</th><th>Meaning</th></tr>
+    <tr><td><code>ready for review</code></td><td>Author finished; awaiting reviewer</td></tr>
+    <tr><td><code>changes requested</code></td><td>Reviewer left comments; author must address</td></tr>
+    <tr><td><code>approved</code></td><td>Reviewer satisfied; ready to merge</td></tr>
+    <tr><td><code>do not merge</code></td><td>Blocked — pending external decision or dependency</td></tr>
+    <tr><td><code>wip</code></td><td>Work in progress — not ready for review</td></tr>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>4. Commit Message Convention</h2>
+  <p>The project follows <strong>Conventional Commits</strong>:</p>
+  <pre>&lt;type&gt;(&lt;optional scope&gt;): &lt;short summary&gt;
+
+[optional body — explain WHY, not what]</pre>
+
+  <table>
+    <tr><th>Type</th><th>When to use</th><th>Example</th></tr>
+    <tr><td><code>feat</code></td><td>New feature</td><td><code>feat(campaigns): add creator apply endpoint</code></td></tr>
+    <tr><td><code>fix</code></td><td>Bug fix</td><td><code>fix(auth): return 409 on duplicate email</code></td></tr>
+    <tr><td><code>refactor</code></td><td>No behaviour change</td><td><code>refactor: extract email service</code></td></tr>
+    <tr><td><code>test</code></td><td>Tests added/updated</td><td><code>test: add campaign integration tests</code></td></tr>
+    <tr><td><code>docs</code></td><td>Documentation only</td><td><code>docs: update API route table in OVERVIEW.md</code></td></tr>
+    <tr><td><code>chore</code></td><td>Build, config, deps</td><td><code>chore: upgrade sequelize to 6.37.3</code></td></tr>
+    <tr><td><code>style</code></td><td>Formatting, linting</td><td><code>style: fix ESLint warnings in auth.service.js</code></td></tr>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>5. Secrets &amp; Environment Policy</h2>
+  <div class="warn"><strong>Critical:</strong> <code>.env</code> files must never be committed to the repository. All sensitive values must be stored in environment variables.</div>
+  <table>
+    <tr><th>Rule</th><th>Detail</th></tr>
+    <tr><td><code>.env</code> never committed</td><td><code>.gitignore</code> excludes <code>.env</code>, <code>.env.local</code>, <code>.env.production</code></td></tr>
+    <tr><td><code>.env.example</code> always updated</td><td>Any new variable must be documented with a placeholder value</td></tr>
+    <tr><td>Production secrets</td><td>Stored in the host's env manager (Railway, Heroku) — never hardcoded</td></tr>
+    <tr><td>Different credentials</td><td>Development and production databases must use separate credentials</td></tr>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>6. Definition of Done</h2>
+  <p>A task is complete when <strong>all</strong> of the following are true:</p>
+  <ol>
+    <li>Feature is implemented and works locally</li>
+    <li>ESLint passes: <code>npm run lint</code> exits with 0 errors</li>
+    <li>Tests are written and pass: <code>npm test</code> all green</li>
+    <li>PR is opened, reviewed, and approved by at least one team member</li>
+    <li>PR is merged into <code>develop</code></li>
+    <li>Documentation (API docs, README, <code>.env.example</code>) is updated if needed</li>
+  </ol>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <h2>7. Communication Policy</h2>
+  <table>
+    <tr><th>Channel</th><th>Used For</th><th>Response Time</th></tr>
+    <tr><td>WhatsApp group</td><td>Quick questions, stand-up updates, urgent blockers</td><td>Within 2 hours</td></tr>
+    <tr><td>GitHub Issues</td><td>Task tracking, bug reports, feature requests</td><td>Next working day</td></tr>
+    <tr><td>GitHub PR comments</td><td>Code-specific review feedback</td><td>Within 4 hours</td></tr>
+    <tr><td>Google Meet</td><td>Scheduled meetings and code review sessions</td><td>Attend on time</td></tr>
+    <tr><td>Email</td><td>Formal communications; supervisor correspondence</td><td>Within 24 hours</td></tr>
+  </table>
+  <p><strong>Working hours:</strong> 9:00 AM – 6:00 PM, Monday to Friday. All team members are expected to respond to messages within 4 hours during these hours.</p>
+
+</div>
+</body>
+</html>

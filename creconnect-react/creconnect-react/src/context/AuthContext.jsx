@@ -83,13 +83,19 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const login = useCallback(async ({ email, password }) => {
+  const login = useCallback(async ({ email, password, role }) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     // ── Demo accounts: bypass the backend entirely ─────────────────────
-    // Checked first so demo login works whether the backend is online or not.
     const demoAccount = findDemoAccount(email, password);
     if (demoAccount) {
+      // Enforce tab restriction for demo accounts too
+      if (role && demoAccount.user.role.toLowerCase() !== role.toLowerCase()) {
+        const expected = demoAccount.user.role.toLowerCase();
+        const msg = `This is a ${expected} account. Please switch to the ${expected.charAt(0).toUpperCase() + expected.slice(1)} tab to sign in.`;
+        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: { message: msg } });
+        throw new Error(msg);
+      }
       const { user, accessToken, refreshToken } = buildDemoSession(demoAccount);
       localStorage.setItem(DEMO_MODE_KEY,  'true');
       localStorage.setItem('accessToken',  accessToken);
@@ -110,6 +116,17 @@ export function AuthProvider({ children }) {
 
       if (!user?.id) {
         throw Object.assign(new Error('Login failed — unexpected server response. Please try again.'), { offline: false });
+      }
+
+      // ── Role tab restriction ───────────────────────────────────────────
+      // The selected tab must match the account's actual role.
+      if (role && user.role && user.role.toLowerCase() !== role.toLowerCase()) {
+        const actual   = user.role.toLowerCase();
+        const expected = actual.charAt(0).toUpperCase() + actual.slice(1);
+        const selected = role.charAt(0).toUpperCase() + role.slice(1);
+        const msg = `This is a ${expected} account. Please switch to the "${expected}" tab to sign in.`;
+        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: { message: msg } });
+        throw Object.assign(new Error(msg), { roleError: true, actual, selected });
       }
 
       localStorage.removeItem(DEMO_MODE_KEY);

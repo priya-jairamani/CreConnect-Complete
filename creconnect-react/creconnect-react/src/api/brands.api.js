@@ -8,6 +8,7 @@ export const brandsApi = {
   getCollaborations:  (params)           => api.get('/brands/me/collaborations', { params }),
   getApplications:    (params)           => api.get('/brands/me/applications',   { params }),
   listBrands:        (params)           => api.get('/brands/list', { params }),
+  getActivity:       (params)           => api.get('/brands/me/activity', { params }),
 
   /* ── Brand Media Gallery ──────────────────────────────────────── */
   getMedia:          (params)           => api.get('/brands/me/media', { params }),

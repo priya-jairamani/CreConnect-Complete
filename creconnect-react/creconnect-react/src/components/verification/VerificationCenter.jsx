@@ -68,6 +68,13 @@ DocUploadCard.propTypes = {
 /* ── NIC Verification Modal ─────────────────────────────────────── */
 function NICModal({ onClose, onSubmit, userType }) {
   const [step,        setStep]        = useState(1); // 1=form 2=uploading 3=success 4=error
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
   const [fullName,    setFullName]    = useState('');
   const [nicNumber,   setNicNumber]   = useState('');
   const [frontFile,   setFrontFile]   = useState(null);
@@ -76,7 +83,16 @@ function NICModal({ onClose, onSubmit, userType }) {
   const [backProg,    setBackProg]    = useState(0);
   const [error,       setError]       = useState('');
 
-  const canSubmit = fullName.trim() && nicNumber.trim().length >= 13 && frontFile && backFile;
+  const canSubmit = fullName.trim() && nicNumber.trim().length === 15 && frontFile && backFile;
+
+  const handleCNICChange = (e) => {
+    // Strip everything except digits, then insert dashes at positions 5 and 13
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 13);
+    let formatted = digits;
+    if (digits.length > 5)  formatted = `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    if (digits.length > 12) formatted = `${formatted.slice(0, 13)}-${formatted.slice(13)}`;
+    setNicNumber(formatted);
+  };
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -170,11 +186,12 @@ function NICModal({ onClose, onSubmit, userType }) {
                 label="CNIC Number"
                 name="nicNumber"
                 value={nicNumber}
-                onChange={(e) => setNicNumber(e.target.value.replace(/[^0-9-]/g, ''))}
+                onChange={handleCNICChange}
                 placeholder="42201-1234567-1"
+                maxLength={15}
                 required
               />
-              <p className="text-xs text-fg-muted -mt-2">Enter exactly as printed on your CNIC (with dashes)</p>
+              <p className="text-xs text-fg-muted -mt-2">Format: XXXXX-XXXXXXX-X (dashes added automatically)</p>
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-fg">Upload CNIC</p>

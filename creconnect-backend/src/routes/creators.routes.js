@@ -213,5 +213,6 @@ router.delete('/me/platforms/:id', authenticate, authorize('CREATOR'), ctrl.remo
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.get('/:username', authenticate, ctrl.getPublicProfile);
+router.get('/:creatorId/public-media', authenticate, ctrl.getPublicMedia);
 
 module.exports = router;

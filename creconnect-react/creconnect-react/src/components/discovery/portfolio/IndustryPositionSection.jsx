@@ -5,6 +5,7 @@ import Button from '@/components/common/Button';
 import ScoreRing from '@/components/common/ScoreRing';
 
 export default function IndustryPositionSection({ ranking, competitors, onSelectBrand }) {
+  if (!ranking && !competitors?.length) return null;
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4 flex items-center gap-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>

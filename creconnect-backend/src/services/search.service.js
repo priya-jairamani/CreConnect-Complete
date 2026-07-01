@@ -6,6 +6,7 @@ async function searchCreators(query) {
   const { offset, limit, page } = parsePagination(query);
   const where = { '$user.status$': 'APPROVED' };
 
+  if (query.creatorId)     where.id            = query.creatorId;
   if (query.q) {
     where[Op.or] = [
       { displayName: { [Op.iLike]: `%${query.q}%` } },

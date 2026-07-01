@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>A4 – Test Cases | CreConnect</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#1a1a2e;background:#fff;line-height:1.6}
+  .page{max-width:980px;margin:0 auto;padding:40px 50px}
+  .cover{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);color:#fff;padding:50px 50px 40px;border-radius:12px;margin-bottom:36px}
+  .cover .tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.6;margin-bottom:10px}
+  .cover h1{font-size:28px;font-weight:700;margin-bottom:6px}
+  .cover .sub{font-size:14px;opacity:.7;margin-bottom:22px}
+  .cover-meta{display:flex;gap:28px;flex-wrap:wrap}
+  .cover-meta span{font-size:11px;opacity:.65}
+  .cover-meta strong{opacity:1;color:#a78bfa}
+  h2{font-size:17px;font-weight:700;color:#1a1a2e;margin:32px 0 12px;padding-bottom:7px;border-bottom:2px solid #e9e9f0}
+  h3{font-size:13.5px;font-weight:600;color:#3730a3;margin:18px 0 8px}
+  p{margin-bottom:10px;color:#374151;font-size:13px}
+  table{width:100%;border-collapse:collapse;margin:8px 0 20px;font-size:11.5px}
+  th{background:#1a1a2e;color:#fff;padding:8px 10px;text-align:left;font-weight:600;font-size:11px;letter-spacing:.2px}
+  td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top}
+  tr:nth-child(even) td{background:#f9f9fc}
+  .pass{color:#059669;font-weight:700}
+  .planned{color:#6d5cff;font-weight:600}
+  code{font-family:'Courier New',monospace;font-size:11px;background:#f1f0f8;border-radius:3px;padding:1px 5px;color:#2d2d6b}
+  .module{background:linear-gradient(135deg,#6d5cff15,#3730a315);border-left:4px solid #6d5cff;padding:10px 14px;border-radius:0 6px 6px 0;margin:14px 0 6px;font-weight:600;color:#3730a3;font-size:13px}
+  .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:16px 0 28px}
+  .stat{background:linear-gradient(135deg,#1a1a2e,#3730a3);color:#fff;border-radius:8px;padding:14px;text-align:center}
+  .stat .num{font-size:22px;font-weight:700;color:#a78bfa}
+  .stat .lbl{font-size:10px;opacity:.7;text-transform:uppercase;letter-spacing:.4px;margin-top:3px}
+  .note{background:#f0f9ff;border-left:3px solid #0ea5e9;padding:10px 13px;border-radius:0 5px 5px 0;margin:10px 0;font-size:12px}
+  @media print{body{font-size:11px}.page{padding:20px 28px}th{font-size:10px}td{padding:5px 8px}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="cover">
+  <div class="tag">A4 — Technical Documents</div>
+  <h1>Test Cases — Complete Application</h1>
+  <div class="sub">CreConnect — Influencer–Brand Collaboration Platform</div>
+  <div class="cover-meta">
+    <span><strong>Framework:</strong> Jest 29 + Supertest 7</span>
+    <span><strong>DB:</strong> PostgreSQL 16 (real — no mocks)</span>
+    <span><strong>Strategy:</strong> Integration Tests</span>
+    <span><strong>Modules:</strong> 11</span>
+    <span><strong>Date:</strong> June 2026</span>
+  </div>
+</div>
+
+<!-- ── SUMMARY ────────────────────────────────────────────────── -->
+<h2>1. Overall Test Summary</h2>
+<div class="summary-grid">
+  <div class="stat"><div class="num">34</div><div class="lbl">Total Tests</div></div>
+  <div class="stat"><div class="num">8</div><div class="lbl">Implemented</div></div>
+  <div class="stat"><div class="num">26</div><div class="lbl">Planned</div></div>
+  <div class="stat"><div class="num">11</div><div class="lbl">Modules</div></div>
+  <div class="stat"><div class="num">8/8</div><div class="lbl">Pass Rate</div></div>
+</div>
+
+<div class="note"><strong>Legend:</strong> <span class="pass">PASS</span> = implemented and passing in CI &nbsp;|&nbsp; <span class="planned">PLANNED</span> = designed, ready to implement in next sprint</div>
+
+<table>
+  <tr><th>Module</th><th>Tests</th><th>Implemented</th><th>Planned</th></tr>
+  <tr><td>1. Authentication</td><td>4</td><td>4</td><td>0</td></tr>
+  <tr><td>2. Campaign Management</td><td>5</td><td>4</td><td>1</td></tr>
+  <tr><td>3. Collaborations</td><td>4</td><td>0</td><td>4</td></tr>
+  <tr><td>4. Messaging</td><td>3</td><td>0</td><td>3</td></tr>
+  <tr><td>5. Notifications</td><td>3</td><td>0</td><td>3</td></tr>
+  <tr><td>6. Creator Profile</td><td>3</td><td>0</td><td>3</td></tr>
+  <tr><td>7. Brand Profile</td><td>2</td><td>0</td><td>2</td></tr>
+  <tr><td>8. Admin Operations</td><td>3</td><td>0</td><td>3</td></tr>
+  <tr><td>9. AI Matching</td><td>3</td><td>0</td><td>3</td></tr>
+  <tr><td>10. Search & Discovery</td><td>2</td><td>0</td><td>2</td></tr>
+  <tr><td>11. Payments & Verification</td><td>2</td><td>0</td><td>2</td></tr>
+  <tr><td><strong>Total</strong></td><td><strong>34</strong></td><td><strong>8</strong></td><td><strong>26</strong></td></tr>
+</table>
+
+<!-- ── MODULE 1: AUTH ─────────────────────────────────────────── -->
+<h2>2. Module 1 — Authentication</h2>
+<div class="module">File: <code>tests/auth.test.js</code> &nbsp;|&nbsp; Status: Implemented</div>
+<p><strong>Setup:</strong> <code>sequelize.authenticate()</code> — verifies DB connectivity before suite runs.<br>
+<strong>Teardown:</strong> Deletes users matching <code>%_test@%</code> pattern.</p>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-A01</td><td>Health check returns OK</td><td>GET</td><td><code>/api/v1/auth/health</code></td>
+    <td>None</td>
+    <td><code>200</code> · <code>data.status === "ok"</code></td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-A02</td><td>Register new creator successfully</td><td>POST</td><td><code>/api/v1/auth/register</code></td>
+    <td><code>{ email:"creator_test@test.com", password:"TestPass@1", role:"CREATOR", username:"testcreator99", displayName:"Test Creator" }</code></td>
+    <td><code>201</code> · <code>success === true</code></td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-A03</td><td>Reject duplicate email on register</td><td>POST</td><td><code>/api/v1/auth/register</code></td>
+    <td>Same email as TC-A02, different username</td>
+    <td><code>409</code> Conflict</td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-A04</td><td>Login fails with wrong credentials</td><td>POST</td><td><code>/api/v1/auth/login</code></td>
+    <td><code>{ email:"nobody@test.com", password:"wrong" }</code></td>
+    <td><code>401</code> Unauthorized</td>
+    <td class="pass">PASS</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 2: CAMPAIGNS ───────────────────────────────────── -->
+<h2>3. Module 2 — Campaign Management</h2>
+<div class="module">File: <code>tests/campaigns.test.js</code> &nbsp;|&nbsp; 4 Implemented · 1 Planned</div>
+<p><strong>Setup:</strong> Creates BRAND + CREATOR users in DB directly (bcrypt 12 rounds). JWT tokens obtained via login.<br>
+<strong>Teardown:</strong> Cascades delete both test users and all dependent rows.</p>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-C01</td><td>Brand creates a campaign</td><td>POST</td><td><code>/api/v1/campaigns</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>{ title:"Test Campaign", objective:"AWARENESS", niche:"TECH", platforms:["INSTAGRAM"], budgetType:"FIXED", budgetPKR:50000, reels:2, posts:1, stories:3, status:"PUBLISHED" }</code></td>
+    <td><code>201</code> · returns <code>data.id</code></td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-C02</td><td>Fetch campaign by ID</td><td>GET</td><td><code>/api/v1/campaigns/:id</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>id</code> from TC-C01</td>
+    <td><code>200</code> · <code>data.title === "Test Campaign"</code></td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-C03</td><td>Creator applies to campaign</td><td>POST</td><td><code>/api/v1/campaigns/:id/apply</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code> · <code>{ note:"I am a great fit!" }</code></td>
+    <td><code>201</code> (new) or <code>409</code> (duplicate)</td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-C04</td><td>Brand deletes campaign</td><td>DELETE</td><td><code>/api/v1/campaigns/:id</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>id</code> from TC-C01</td>
+    <td><code>200</code></td>
+    <td class="pass">PASS</td>
+  </tr>
+  <tr>
+    <td>TC-C05</td><td>Non-owner cannot delete campaign</td><td>DELETE</td><td><code>/api/v1/campaigns/:id</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code> · campaign owned by brand</td>
+    <td><code>403</code> Forbidden</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 3: COLLABORATIONS ──────────────────────────────── -->
+<h2>4. Module 3 — Collaborations</h2>
+<div class="module">File: <code>tests/collaborations.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-COL01</td><td>Brand accepts a creator application</td><td>PATCH</td><td><code>/api/v1/collaborations/:id/accept</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · collaboration in PENDING state</td>
+    <td><code>200</code> · <code>data.status === "ACTIVE"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-COL02</td><td>Brand rejects a creator application</td><td>PATCH</td><td><code>/api/v1/collaborations/:id/reject</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · collaboration in PENDING state</td>
+    <td><code>200</code> · <code>data.status === "REJECTED"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-COL03</td><td>Brand marks collaboration complete</td><td>PATCH</td><td><code>/api/v1/collaborations/:id/complete</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · active collaboration</td>
+    <td><code>200</code> · <code>data.status === "COMPLETED"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-COL04</td><td>Creator lists their collaborations</td><td>GET</td><td><code>/api/v1/creators/me/collaborations</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code></td>
+    <td><code>200</code> · <code>data.data</code> is an array with pagination</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 4: MESSAGING ───────────────────────────────────── -->
+<h2>5. Module 4 — Messaging</h2>
+<div class="module">File: <code>tests/messages.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-MSG01</td><td>Brand starts a conversation with creator</td><td>POST</td><td><code>/api/v1/messages/conversations</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>{ otherUserId: "&lt;creatorId&gt;" }</code></td>
+    <td><code>201</code> · returns <code>data.id</code> (conversationId)</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-MSG02</td><td>Send a message in a conversation</td><td>POST</td><td><code>/api/v1/messages/conversations/:id/messages</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>{ content:"Hello! Interested in collaborating?" }</code></td>
+    <td><code>201</code> · <code>data.content === "Hello! Interested in collaborating?"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-MSG03</td><td>Get unread message count</td><td>GET</td><td><code>/api/v1/messages/unread-count</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code></td>
+    <td><code>200</code> · <code>data.count</code> is a number ≥ 0</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 5: NOTIFICATIONS ───────────────────────────────── -->
+<h2>6. Module 5 — Notifications</h2>
+<div class="module">File: <code>tests/notifications.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-N01</td><td>Get all notifications for authenticated user</td><td>GET</td><td><code>/api/v1/notifications</code></td>
+    <td>Auth: <code>Bearer &lt;token&gt;</code></td>
+    <td><code>200</code> · <code>data</code> is an array</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-N02</td><td>Mark a single notification as read</td><td>PATCH</td><td><code>/api/v1/notifications/:id/read</code></td>
+    <td>Auth: <code>Bearer &lt;token&gt;</code> · valid notification ID</td>
+    <td><code>200</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-N03</td><td>Mark all notifications as read</td><td>PATCH</td><td><code>/api/v1/notifications/read-all</code></td>
+    <td>Auth: <code>Bearer &lt;token&gt;</code></td>
+    <td><code>200</code> · all notifications have <code>isRead === true</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 6: CREATOR PROFILE ─────────────────────────────── -->
+<h2>7. Module 6 — Creator Profile</h2>
+<div class="module">File: <code>tests/creators.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-CR01</td><td>Get own creator profile</td><td>GET</td><td><code>/api/v1/creators/me</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code></td>
+    <td><code>200</code> · <code>data.username</code> matches registered username</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-CR02</td><td>Update creator profile (bio + niche)</td><td>PATCH</td><td><code>/api/v1/creators/me</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code> · <code>{ bio:"Updated bio", niche:"FASHION" }</code></td>
+    <td><code>200</code> · <code>data.bio === "Updated bio"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-CR03</td><td>Add a social media platform handle</td><td>POST</td><td><code>/api/v1/creators/me/platforms</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code> · <code>{ platform:"INSTAGRAM", handle:"@mytesthandle", followerCount:50000 }</code></td>
+    <td><code>201</code> · platform appears in <code>data.platforms</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 7: BRAND PROFILE ───────────────────────────────── -->
+<h2>8. Module 7 — Brand Profile</h2>
+<div class="module">File: <code>tests/brands.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-BR01</td><td>Get own brand profile</td><td>GET</td><td><code>/api/v1/brands/me</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code></td>
+    <td><code>200</code> · <code>data.companyName</code> matches registered company</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-BR02</td><td>Update brand profile (description + website)</td><td>PATCH</td><td><code>/api/v1/brands/me</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>{ description:"We sell great products.", website:"https://example.com" }</code></td>
+    <td><code>200</code> · <code>data.website === "https://example.com"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 8: ADMIN ────────────────────────────────────────── -->
+<h2>9. Module 8 — Admin Operations</h2>
+<div class="module">File: <code>tests/admin.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-ADM01</td><td>Admin can list all users (paginated)</td><td>GET</td><td><code>/api/v1/admin/users</code></td>
+    <td>Auth: <code>Bearer &lt;adminToken&gt;</code></td>
+    <td><code>200</code> · <code>data.data</code> is an array · pagination fields present</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-ADM02</td><td>Admin approves a pending user</td><td>PATCH</td><td><code>/api/v1/admin/users/:id/approve</code></td>
+    <td>Auth: <code>Bearer &lt;adminToken&gt;</code> · user in PENDING status</td>
+    <td><code>200</code> · <code>data.status === "APPROVED"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-ADM03</td><td>Non-admin cannot access admin routes</td><td>GET</td><td><code>/api/v1/admin/users</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> (BRAND role)</td>
+    <td><code>403</code> Forbidden</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 9: AI MATCHING ─────────────────────────────────── -->
+<h2>10. Module 9 — AI Matching Engine</h2>
+<div class="module">File: <code>tests/ai.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-AI01</td><td>Admin triggers AI engine run</td><td>POST</td><td><code>/api/v1/ai/run</code></td>
+    <td>Auth: <code>Bearer &lt;adminToken&gt;</code></td>
+    <td><code>200</code> · response contains match count</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-AI02</td><td>Brand retrieves AI-matched creators</td><td>GET</td><td><code>/api/v1/ai/matches/brand/:brandId</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · own brandId</td>
+    <td><code>200</code> · <code>data</code> is array · each item has <code>matchScore</code> (0–100)</td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-AI03</td><td>Brand sends accept feedback on AI match</td><td>POST</td><td><code>/api/v1/ai/feedback</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · <code>{ brandId:"...", creatorId:"...", accepted:true }</code></td>
+    <td><code>200</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 10: SEARCH ─────────────────────────────────────── -->
+<h2>11. Module 10 — Search & Discovery</h2>
+<div class="module">File: <code>tests/search.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-S01</td><td>Search creators by niche keyword</td><td>GET</td><td><code>/api/v1/search/creators?query=beauty</code></td>
+    <td>Auth: <code>Bearer &lt;brandToken&gt;</code> · query param <code>q=beauty</code></td>
+    <td><code>200</code> · all results have <code>niche</code> matching <code>BEAUTY</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-S02</td><td>Search brands by industry</td><td>GET</td><td><code>/api/v1/search/brands?industry=TECH</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code></td>
+    <td><code>200</code> · results filtered by <code>industry === "TECH"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── MODULE 11: PAYMENTS & VERIFICATION ────────────────────── -->
+<h2>12. Module 11 — Payments & Verification</h2>
+<div class="module">File: <code>tests/payments.test.js</code> (planned) &nbsp;|&nbsp; All Planned</div>
+
+<table>
+  <tr><th>ID</th><th>Test Name</th><th>Method</th><th>Endpoint</th><th>Input</th><th>Expected</th><th>Status</th></tr>
+  <tr>
+    <td>TC-PAY01</td><td>Creator retrieves payment history</td><td>GET</td><td><code>/api/v1/payments/history</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code></td>
+    <td><code>200</code> · <code>data.data</code> is an array · items have <code>amount</code>, <code>status</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+  <tr>
+    <td>TC-VER01</td><td>Creator submits verification documents</td><td>POST</td><td><code>/api/v1/verification/submit</code></td>
+    <td>Auth: <code>Bearer &lt;creatorToken&gt;</code> · <code>{ documentType:"ID_CARD", documentId:"demo-doc-id" }</code></td>
+    <td><code>200</code> · <code>data.status === "pending"</code></td>
+    <td class="planned">PLANNED</td>
+  </tr>
+</table>
+
+<!-- ── HOW TO RUN ─────────────────────────────────────────────── -->
+<h2>13. Running the Tests</h2>
+<h3>Run implemented tests (Auth + Campaigns)</h3>
+<p>From the <code>creconnect-backend/</code> directory:</p>
+<pre style="font-family:'Courier New',monospace;font-size:11.5px;background:#0d0d1a;color:#c9d1d9;border-radius:6px;padding:14px;border-left:3px solid #6d5cff;margin:8px 0">npm test
+# Runs:  jest --runInBand
+# Files: tests/auth.test.js  tests/campaigns.test.js
+# Flags: --runInBand prevents concurrent DB connection conflicts</pre>
+
+<h3>Expected console output</h3>
+<pre style="font-family:'Courier New',monospace;font-size:11.5px;background:#0d0d1a;color:#c9d1d9;border-radius:6px;padding:14px;border-left:3px solid #6d5cff;margin:8px 0"> PASS  tests/auth.test.js
+  GET /api/v1/auth/health
+    ✓ returns 200 with status ok (45 ms)
+  POST /api/v1/auth/register
+    ✓ registers a creator successfully (312 ms)
+    ✓ returns 409 on duplicate email (89 ms)
+  POST /api/v1/auth/login
+    ✓ returns 401 with wrong credentials (102 ms)
+
+ PASS  tests/campaigns.test.js
+  Campaign CRUD
+    ✓ brand can create a campaign (198 ms)
+    ✓ returns campaign by id (65 ms)
+    ✓ creator can apply to campaign (71 ms)
+    ✓ brand can delete campaign (58 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       8 passed, 8 total
+Time:        4.821 s</pre>
+
+<h3>Jest Configuration (<code>package.json</code>)</h3>
+<pre style="font-family:'Courier New',monospace;font-size:11.5px;background:#0d0d1a;color:#c9d1d9;border-radius:6px;padding:14px;border-left:3px solid #6d5cff;margin:8px 0">{
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [ "**/tests/**/*.test.js" ]
+  },
+  "scripts": {
+    "test": "jest --runInBand"
+  }
+}</pre>
+
+<h3>Notes on Integration Testing Approach</h3>
+<ul style="margin:8px 0 0 20px">
+  <li>All tests hit a <strong>real PostgreSQL 16 database</strong> — no mocking ensures ORM, middleware, and response shapes are production-accurate.</li>
+  <li>TC-C03 accepts <code>201</code> or <code>409</code> defensively: if a previous teardown failed, the existing application record prevents a duplicate apply.</li>
+  <li>Planned tests follow the same pattern: <code>beforeAll</code> seeds data, <code>afterAll</code> cleans it up with cascade.</li>
+  <li>Password hashing uses <strong>bcrypt cost factor 12</strong> in both test setup and the production auth service — matching environments prevents hash divergence bugs.</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -9,6 +9,7 @@ const tooltipStyle = {
 const axisTick = { fill: 'var(--fg-muted)', fontSize: 11 };
 
 export default function ReviewsSection({ reviews, satisfactionTrend }) {
+  if (!reviews) return null;
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>

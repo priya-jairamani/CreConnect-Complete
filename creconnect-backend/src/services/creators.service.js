@@ -114,6 +114,15 @@ async function getMedia(userId, params = {}) {
   return CreatorMedia.findAll({ where, order: [['order','ASC'],['createdAt','DESC']] });
 }
 
+// Public: any authenticated user (brands, creators) can view another creator's public media
+async function getPublicMedia(creatorProfileId) {
+  return CreatorMedia.findAll({
+    where: { creatorId: creatorProfileId, visibility: 'PUBLIC' },
+    order: [['isFeatured','DESC'],['createdAt','DESC']],
+    limit: 30,
+  });
+}
+
 async function addMedia(userId, data) {
   const profile = await CreatorProfile.findOne({ where: { userId } });
   if (!profile) throw new NotFoundError('Creator profile not found');
@@ -160,4 +169,4 @@ async function reorderMedia(userId, orderedIds) {
   );
 }
 
-module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };
+module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };

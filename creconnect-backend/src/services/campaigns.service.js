@@ -3,12 +3,19 @@ const { Campaign, BrandProfile, Application, Collaboration, CreatorProfile, User
 const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const notificationsSvc = require('./notifications.service');
+const { logActivity } = require('../utils/activity');
 
 async function create(userId, data) {
   const brand = await BrandProfile.findOne({ where: { userId } });
   if (!brand) throw new ForbiddenError('Only brands can create campaigns');
   const campaign = await Campaign.create({ ...data, brandId: brand.id });
-  return campaign.reload({ include: [{ model: BrandProfile, as: 'brand' }] });
+  const result = await campaign.reload({ include: [{ model: BrandProfile, as: 'brand' }] });
+  const isDraft = (data.status ?? 'PUBLISHED') === 'DRAFT';
+  logActivity(userId, isDraft ? 'campaign.draft_created' : 'campaign.published', {
+    entity: 'campaign', entityId: campaign.id,
+    meta: { title: campaign.title, status: campaign.status },
+  });
+  return result;
 }
 
 async function list(query) {
@@ -41,7 +48,13 @@ async function getById(id) {
 async function update(id, userId, data) {
   const campaign = await _assertOwner(id, userId);
   await campaign.update(data);
-  return campaign.reload({ include: [{ model: BrandProfile, as: 'brand' }] });
+  const result = await campaign.reload({ include: [{ model: BrandProfile, as: 'brand' }] });
+  const action = data.status ? `campaign.status_changed` : 'campaign.updated';
+  logActivity(userId, action, {
+    entity: 'campaign', entityId: id,
+    meta: { title: campaign.title, ...(data.status ? { status: data.status } : {}) },
+  });
+  return result;
 }
 
 async function remove(id, userId) {
@@ -124,6 +137,11 @@ async function respondToApplication(appId, action, userId) {
     notificationsSvc.createForUser(creator.userId, msg, type).catch(() => {});
   }
 
+  logActivity(userId,
+    status === 'ACCEPTED' ? 'collaboration.application_accepted' : 'collaboration.application_rejected',
+    { entity: 'application', entityId: appId, meta: { campaign: app.campaign?.title, creator: creator?.displayName } }
+  );
+
   return app;
 }
 
@@ -181,6 +199,11 @@ async function inviteCreator(campaignId, brandUserId, creatorProfileId) {
     'CAMPAIGN_INVITE',
   );
 
+  logActivity(brandUserId, 'campaign.creator_invited', {
+    entity: 'campaign', entityId: campaignId,
+    meta: { campaign: campaignTitle, creator: creator.displayName },
+  });
+
   return app;
 }
 
@@ -200,6 +223,20 @@ async function creatorRespondToInvitation(appId, action, userId) {
 
   // Notify the brand
   const brand = await BrandProfile.findOne({ where: { id: app.campaign?.brandId } });
+
+  if (newStatus === 'ACCEPTED') {
+    // Create the collaboration record so the creator sees it in Active campaigns
+    await Collaboration.findOrCreate({
+      where: { campaignId: app.campaignId, creatorId: app.creatorId },
+      defaults: {
+        campaignId: app.campaignId,
+        creatorId:  app.creatorId,
+        brandId:    app.campaign?.brandId,
+        status:     'ACCEPTED',
+        stage:      'INQUIRY',
+      },
+    });
+  }
 
   if (brand?.userId) {
     const creatorName = creator.displayName || creator.username || 'A creator';

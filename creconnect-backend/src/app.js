@@ -36,7 +36,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5000',
   'http://localhost:5173',
   'http://localhost:5174',
-];
+  process.env.BACKEND_URL,                      // Cloudflare tunnel URL
+  ...(process.env.EXTRA_ORIGINS ? process.env.EXTRA_ORIGINS.split(',').map((o) => o.trim()) : []),
+].filter(Boolean);
 app.use(cors({
   origin: (origin, cb) => {
     // allow server-to-server (no origin) and any listed origin

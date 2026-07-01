@@ -11,6 +11,7 @@ const tooltipStyle = {
 const axisTick = { fill: 'var(--fg-muted)', fontSize: 11 };
 
 export default function CampaignROISection({ history }) {
+  if (!history?.length) return null;
   const avgRoi = Math.round(history.reduce((sum, h) => sum + h.roi, 0) / history.length);
   const latest = history[history.length - 1]?.roi ?? 0;
   const first = history[0]?.roi ?? 0;

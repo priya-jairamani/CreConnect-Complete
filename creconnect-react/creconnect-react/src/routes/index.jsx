@@ -58,6 +58,7 @@ import BrandActivity         from '@/pages/brand/BrandActivity';
 import BrandSettings         from '@/pages/brand/BrandSettings';
 import BrandReminders        from '@/pages/brand/BrandReminders';
 import BrandNotifications    from '@/pages/brand/BrandNotifications';
+import CreatorPortfolio      from '@/pages/brand/CreatorPortfolio';
 
 /* ── Admin pages ───────────────────────────────────────────── */
 import AdminLogin         from '@/pages/admin/AdminLogin';
@@ -148,6 +149,7 @@ const router = createBrowserRouter([
       { path: ROUTES.BRAND_REMINDERS,        element: <BrandReminders /> },
       { path: ROUTES.BRAND_NOTIFICATIONS,   element: <BrandNotifications /> },
       { path: ROUTES.BRAND_MY_PORTFOLIO,     element: <BrandPortfolio /> },
+      { path: ROUTES.BRAND_CREATOR_PROFILE, element: <CreatorPortfolio /> },
     ],
   },
 

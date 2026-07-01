@@ -74,7 +74,13 @@ api.interceptors.response.use(
     // Skip token refresh entirely for demo sessions — demo tokens are not real
     if (isDemo()) return Promise.reject(buildError(error));
 
-    if (error.response?.status === 401 && original && !original._retry) {
+    // Never try to refresh or redirect on auth endpoints themselves —
+    // a 401 from /auth/login just means wrong credentials, not an expired token.
+    const isAuthEndpoint = original?.url?.includes('/auth/login') ||
+                           original?.url?.includes('/auth/register') ||
+                           original?.url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && original && !original._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({ resolve, reject });

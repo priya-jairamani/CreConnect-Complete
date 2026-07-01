@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useCopy } from '@/hooks/useCopy';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
@@ -32,6 +33,7 @@ import PaymentReliabilitySection from '@/components/discovery/portfolio/PaymentR
 
 import { searchApi } from '@/api/search.api';
 import { brandsApi } from '@/api/brands.api';
+import { messagesApi } from '@/api/messages.api';
 import { ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/useToast';
 import {
@@ -71,6 +73,7 @@ export default function BrandPortfolio() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const { copy: copyToClipboard, copied: linkCopied } = useCopy();
   const brandId = searchParams.get('brandId');
   const isOwnProfile = !brandId;
   const isInBrandModule = location.pathname.startsWith('/brand/');
@@ -149,21 +152,36 @@ export default function BrandPortfolio() {
     });
   }, [brand, toast]);
 
-  const handleMessage = useCallback(() => {
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleMessage = useCallback(async () => {
     if (!brand) return;
-    if (isOwnProfile) {
-      toast.info('This is a preview of your own brand profile.');
-      return;
+    if (isOwnProfile) { toast.info('This is a preview of your own brand profile.'); return; }
+
+    const uid = brand.userId;
+    if (!uid) { toast.error('Cannot start conversation — brand account not found.'); return; }
+
+    setStartingChat(true);
+    try {
+      const { data } = await messagesApi.createConversation(uid);
+      const conv = data?.data ?? data;
+      if (conv?.id) {
+        navigate(ROUTES.CREATOR_MESSAGES, { state: { openConversationId: conv.id, conversation: conv } });
+      } else {
+        navigate(`${ROUTES.CREATOR_MESSAGES}?userId=${uid}`);
+      }
+    } catch (err) {
+      toast.error(err?.message || 'Could not start conversation.');
+    } finally {
+      setStartingChat(false);
     }
-    navigate(`${ROUTES.CREATOR_MESSAGES}?brandId=${brand.id}`);
   }, [brand, isOwnProfile, navigate, toast]);
 
   const handleShare = useCallback(() => {
     if (!brand) return;
     const url = `${window.location.origin}${ROUTES.BRAND_PORTFOLIO}?brandId=${brand.id}`;
-    navigator.clipboard?.writeText(url);
-    toast.success('Brand profile link copied to clipboard');
-  }, [brand, toast]);
+    copyToClipboard(url);
+  }, [brand, copyToClipboard]);
 
   const handleExport = useCallback((label) => {
     toast.info(`${label} is coming soon.`);
@@ -254,7 +272,12 @@ export default function BrandPortfolio() {
 
       {/* Export & sharing toolbar */}
       <div className="flex flex-wrap gap-2 justify-end">
-        <button type="button" onClick={handleShare} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>↗ Share Profile</button>
+        <button type="button" onClick={handleShare} className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+          style={linkCopied
+            ? { background: 'rgba(22,179,100,0.15)', color: '#16b364', border: '1px solid rgba(22,179,100,0.3)' }
+            : { background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }
+          }
+        >{linkCopied ? '✓ Link Copied!' : '↗ Share Profile'}</button>
         <button type="button" onClick={() => handleExport('Export Portfolio PDF')} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>📄 Export Portfolio PDF</button>
         <button type="button" onClick={() => handleExport('Media Kit download')} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>🗂 Download Media Kit</button>
         <button type="button" onClick={() => handleExport('Partnership report generation')} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: 'var(--surface-2)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>📊 Generate Partnership Report</button>

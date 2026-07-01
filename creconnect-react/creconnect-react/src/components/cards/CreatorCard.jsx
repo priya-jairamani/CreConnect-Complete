@@ -5,7 +5,7 @@ import Button from '@/components/common/Button';
 import ScoreRing from '@/components/common/ScoreRing';
 import { formatFollowers, formatEngagement } from '@/utils/formatters';
 
-export default function CreatorCard({ creator, onSave, onView, onSendOffer }) {
+export default function CreatorCard({ creator, onSave, onView, onSendOffer, onMessage }) {
   const score = creator.matchScore ?? Math.round(60 + Math.random() * 35);
 
   return (
@@ -17,7 +17,8 @@ export default function CreatorCard({ creator, onSave, onView, onSendOffer }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Avatar
-            initials={creator.avatarInitials}
+            src={creator.avatarUrl}
+            initials={creator.avatarInitials ?? creator.displayName?.slice(0, 2).toUpperCase()}
             color={creator.avatarColor}
             size="lg"
           />
@@ -89,6 +90,11 @@ export default function CreatorCard({ creator, onSave, onView, onSendOffer }) {
               View
             </Button>
           )}
+          {onMessage && (
+            <Button variant="secondary" size="sm" onClick={() => onMessage(creator)}>
+              💬 Message
+            </Button>
+          )}
           {onSendOffer && (
             <Button variant="primary" size="sm" onClick={() => onSendOffer(creator)} className="ml-auto">
               Invite
@@ -108,6 +114,7 @@ CreatorCard.propTypes = {
     niche:             PropTypes.string,
     followerCount:     PropTypes.number,
     engagementRate:    PropTypes.number,
+    avatarUrl:         PropTypes.string,
     avatarInitials:    PropTypes.string,
     avatarColor:       PropTypes.string,
     isVerified:        PropTypes.bool,
@@ -118,4 +125,5 @@ CreatorCard.propTypes = {
   onSave:      PropTypes.func,
   onView:      PropTypes.func,
   onSendOffer: PropTypes.func,
+  onMessage:   PropTypes.func,
 };

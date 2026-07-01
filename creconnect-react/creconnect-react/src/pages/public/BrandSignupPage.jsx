@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/api/auth.api';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
+import PasswordStrength from '@/components/common/PasswordStrength';
 
 const BASE_URL    = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 const BACKEND_URL = BASE_URL.replace('/api/v1', '');
@@ -72,6 +73,7 @@ export default function BrandSignupPage() {
           <Input label="Contact Name" name="contactName" value={values.contactName} onChange={handleChange} placeholder="Your name" />
           <Input label="Email"        name="email"       type="email" value={values.email} onChange={handleChange} placeholder="you@company.com" required />
           <Input label="Password"     name="password"    type="password" value={values.password} onChange={handleChange} placeholder="Min 8 characters" required />
+          <PasswordStrength password={values.password} />
           <Input label="Industry"     name="industry"    value={values.industry} onChange={handleChange} placeholder="e.g. Fashion, Tech, F&B" />
 
           <Button type="submit" variant="primary" size="full" disabled={!isValid} isLoading={isLoading}>

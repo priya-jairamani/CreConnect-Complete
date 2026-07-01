@@ -41,4 +41,11 @@ const listBrands = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { getMe, updateMe, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands };
+const getMyActivity = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.getMyActivity(req.user.id, req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+module.exports = { getMe, updateMe, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands, getMyActivity };

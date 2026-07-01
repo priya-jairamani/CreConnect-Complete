@@ -295,7 +295,8 @@ export default function SearchCreators() {
                   <CreatorCard
                     creator={{ ...creator, id: creatorId, userId: creator.userId || creatorId }}
                     onSave={() => handleSave(creator)}
-                    onView={() => navigate(`${ROUTES.BRAND_COLLAB_REQUEST}?creatorId=${creator.userId || creatorId}`)}
+                    onView={() => navigate(`${ROUTES.BRAND_CREATOR_PROFILE}?creatorId=${creator.userId || creatorId}`, { state: { creator: { ...creator, id: creatorId, userId: creator.userId || creatorId } } })}
+                    onMessage={() => navigate(`${ROUTES.BRAND_MESSAGES}?userId=${creator.userId || creatorId}`)}
                     onSendOffer={() => navigate(ROUTES.BRAND_COLLAB_REQUEST)}
                   />
 
@@ -360,7 +361,8 @@ export default function SearchCreators() {
                 key={creator.id}
                 creator={creator}
                 onSave={() => handleSave(creator)}
-                onView={() => navigate(`${ROUTES.BRAND_COLLAB_REQUEST}?creatorId=${creator.userId || creator.id}`)}
+                onView={() => navigate(`${ROUTES.BRAND_CREATOR_PROFILE}?creatorId=${creator.userId || creator.id}`, { state: { creator } })}
+                onMessage={() => navigate(`${ROUTES.BRAND_MESSAGES}?userId=${creator.userId || creator.id}`)}
                 onSendOffer={() => navigate(ROUTES.BRAND_COLLAB_REQUEST)}
               />
             ))}

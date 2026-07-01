@@ -3,6 +3,7 @@ import Badge from '@/components/common/Badge';
 import { formatFollowers } from '@/utils/formatters';
 
 export default function AchievementsSection({ achievements }) {
+  if (!achievements) return null;
   const { awards, certifications, recognitions, featuredCampaigns } = achievements;
 
   return (

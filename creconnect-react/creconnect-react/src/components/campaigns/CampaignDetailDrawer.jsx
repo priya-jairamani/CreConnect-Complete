@@ -66,7 +66,7 @@ function DeliverableChip({ icon, label, count }) {
 
 /* ─── main component ────────────────────────────────────────── */
 
-export default function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate }) {
+export default function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpdate, onEditDraft }) {
 
   const [applications,  setApplications]  = useState([]);
   const [isLoadingApps, setIsLoadingApps] = useState(false);
@@ -196,9 +196,19 @@ export default function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpda
         {/* ── Status actions ────────────────────────────────────── */}
         <div className="flex items-center gap-2 flex-wrap">
           {c.status === 'DRAFT' && (
-            <Button variant="primary"   size="sm" disabled={isUpdating} onClick={() => handleStatusChange('PUBLISHED')}>
-              🚀 Publish Campaign
-            </Button>
+            <>
+              <Button variant="primary" size="sm" disabled={isUpdating} onClick={() => handleStatusChange('PUBLISHED')}>
+                🚀 Publish
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isUpdating}
+                onClick={() => { onClose(); onEditDraft?.(c); }}
+              >
+                ✏️ Edit Draft
+              </Button>
+            </>
           )}
           {c.status === 'PUBLISHED' && (
             <Button variant="secondary" size="sm" disabled={isUpdating} onClick={() => handleStatusChange('PAUSED')}>

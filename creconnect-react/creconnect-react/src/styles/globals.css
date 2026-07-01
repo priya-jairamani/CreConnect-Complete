@@ -64,6 +64,45 @@
   background-size: 200% 100%;
 }
 
+/* ── Recharts: apply theme colours to tooltips, legends, axis ticks ─
+   Recharts ships with hardcoded #fff backgrounds and dark text in its
+   default CSS. Override them globally so they respect the active theme. */
+
+.recharts-default-tooltip {
+  background-color: var(--surface-2) !important;
+  border:    1px solid var(--border)  !important;
+  border-radius: 8px                  !important;
+  color: var(--fg)                    !important;
+}
+
+.recharts-tooltip-label,
+.recharts-tooltip-item,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-value,
+.recharts-tooltip-item-separator {
+  color: var(--fg) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--fg-muted) !important;
+}
+
+/* Cursor (hover highlight on bar/area charts) */
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: var(--surface-2);
+  opacity: 0.5;
+}
+
+/* Axis tick text rendered as SVG — use var(--fg-muted) */
+.recharts-cartesian-axis-tick-value {
+  fill: var(--fg-muted);
+}
+
+/* Polar grid and angle axis tick text (radar charts) */
+.recharts-polar-angle-axis-tick-value {
+  fill: var(--fg-muted);
+}
+
 /* ── Light-theme fixes for dark-only hover / border colours ── */
 
 /* Sidebar hover: rgba(255,255,255,0.05) is invisible on a white background */

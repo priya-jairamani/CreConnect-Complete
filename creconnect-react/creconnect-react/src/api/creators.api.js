@@ -10,6 +10,7 @@ export const creatorsApi = {
   addPlatform:       (data)          => api.post('/creators/me/platforms', data),
   removePlatform:    (id)            => api.delete(`/creators/me/platforms/${id}`),
   getPublicProfile:  (username)      => api.get(`/creators/${username}`),
+  getPublicMedia:    (creatorId)     => api.get(`/creators/${creatorId}/public-media`),
 
   /* ── Social platform media ────────────────────────────────────── */
   getPlatformPosts: (platformId) => api.get(`/social/platforms/${platformId}/posts`),

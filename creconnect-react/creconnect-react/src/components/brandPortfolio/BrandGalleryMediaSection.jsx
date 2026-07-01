@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 
 export default function BrandGalleryMediaSection({ gallery }) {
+  if (!gallery) return null;
   return (
     <div className="space-y-5">
       {gallery.map((group) => (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { resolveMediaUrl } from '@/utils/media';
 import { NavLink } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,7 +23,11 @@ export default function CreatorSidebar() {
   const { logout, user } = useAuth();
   const { unreadCount }  = useNotification();
   const msgCount         = useMessageCount();
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'CR';
+
+  const profile     = user?.profile ?? {};
+  const displayName = profile.displayName || profile.username || user?.email?.split('@')[0] || 'Creator';
+  const avatarUrl   = profile.avatarUrl || null;
+  const initials    = displayName.slice(0, 2).toUpperCase();
 
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('cc-sidebar-collapsed') === 'true'; } catch { return false; }
@@ -64,14 +69,25 @@ export default function CreatorSidebar() {
         <div
           className="flex items-center rounded-xl"
           style={{ background: 'var(--surface-2)', padding: c ? '6px' : '6px 8px', gap: c ? 0 : 10, justifyContent: c ? 'center' : 'flex-start' }}
-          title={c ? (user?.email ?? 'Creator') : undefined}
+          title={c ? displayName : undefined}
         >
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg,#6d5cff,#4c2dd1)' }}>
+          {avatarUrl ? (
+            <img
+              src={resolveMediaUrl(avatarUrl)}
+              alt={displayName}
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }}
+            />
+          ) : null}
+          <div
+            className="w-8 h-8 rounded-full items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#6d5cff,#4c2dd1)', display: avatarUrl ? 'none' : 'flex' }}
+          >
             {initials}
           </div>
           {!c && (
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-fg truncate">{user?.email ?? 'Creator User'}</p>
+              <p className="text-xs font-semibold text-fg truncate">{displayName}</p>
               <p className="text-[10px] text-fg-muted">Creator account</p>
             </div>
           )}

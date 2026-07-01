@@ -2,6 +2,21 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
+import { useCopy } from '@/hooks/useCopy';
+
+function CopyButton({ text, size = 'xs' }) {
+  const { copy, copied } = useCopy();
+  return (
+    <Button
+      variant="ghost"
+      size={size}
+      onClick={() => copy(text)}
+      style={copied ? { color: '#16b364' } : {}}
+    >
+      {copied ? '✓ Copied' : 'Copy'}
+    </Button>
+  );
+}
 
 function maskKey(key) {
   return `${key.slice(0, 11)}${'•'.repeat(16)}${key.slice(-4)}`;
@@ -51,7 +66,7 @@ export default function IntegrationsSection({ integrations, onToggle, apiKeys, w
                 <Button variant="ghost" size="xs" onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}>
                   {revealed[k.id] ? 'Hide' : 'Reveal'}
                 </Button>
-                <Button variant="ghost" size="xs" onClick={() => navigator.clipboard?.writeText(k.value)}>Copy</Button>
+                <CopyButton text={k.value} />
                 <Button variant="ghost" size="xs">Regenerate</Button>
               </div>
             </div>

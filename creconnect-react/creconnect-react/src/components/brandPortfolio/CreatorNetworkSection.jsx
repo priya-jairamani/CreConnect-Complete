@@ -11,6 +11,7 @@ const SORTS = [
 ];
 
 export default function CreatorNetworkSection({ creators }) {
+  if (!creators) return null;
   const [sortKey, setSortKey] = useState('successful');
 
   const sorted = useMemo(() => {

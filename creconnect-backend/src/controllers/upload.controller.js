@@ -54,8 +54,10 @@ const uploadCampaignAsset = async (req, res, next) => {
 const uploadChatAttachment = async (req, res, next) => {
   try {
     if (!req.file) return next(new ForbiddenError('No file provided'));
-    const result = await uploadToCloudinary(req.file.buffer, 'chat', { resource_type: 'auto' });
-    ok(res, { url: result.secure_url }, 'Attachment uploaded');
+    const mime     = req.file.mimetype || '';
+    const resType  = mime.startsWith('video/') ? 'video' : mime.startsWith('image/') ? 'image' : 'raw';
+    const result   = await uploadToCloudinary(req.file.buffer, 'chat', { resource_type: resType, _mime: mime });
+    ok(res, { url: result.secure_url, type: mime, name: req.file.originalname }, 'Attachment uploaded');
   } catch (e) { next(e); }
 };
 
