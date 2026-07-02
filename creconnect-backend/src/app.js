@@ -11,6 +11,7 @@ const { FRONTEND_URL, NODE_ENV } = require('./config/env');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 const routes = require('./routes');
+const paymentsCtrl = require('./controllers/payments.controller');
 
 const app = express();
 
@@ -49,6 +50,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// ─── Stripe webhook (needs the raw body for signature verification —
+// must be registered before express.json() consumes the request stream) ───────
+app.post('/api/v1/payments/webhook', express.raw({ type: 'application/json' }), paymentsCtrl.handleWebhook);
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));

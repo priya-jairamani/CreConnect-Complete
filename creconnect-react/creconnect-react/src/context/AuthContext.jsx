@@ -74,9 +74,15 @@ export function AuthProvider({ children }) {
           localStorage.setItem('cc_user', JSON.stringify(data));
           dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user: data, accessToken: token, refreshToken: localStorage.getItem('refreshToken') } });
         }
-      }).catch(() => {
-        _clearStorage();
-        dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      }).catch((err) => {
+        // Only an actual auth failure means the session is invalid — network
+        // errors, timeouts, or the backend restarting shouldn't log the user out.
+        if (err?.status === 401 || err?.status === 403) {
+          _clearStorage();
+          dispatch({ type: AUTH_ACTIONS.LOGOUT });
+        } else {
+          dispatch({ type: AUTH_ACTIONS.BOOT_DONE });
+        }
       });
     } else {
       dispatch({ type: AUTH_ACTIONS.BOOT_DONE });

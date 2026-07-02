@@ -69,9 +69,8 @@ export default function Campaigns() {
   const handleUpdateCampaign = async (id, payload) => {
     setIsCreating(true);
     try {
-      const { data } = await updateCampaign(id, payload);
-      const updated = data?.data ?? data;
-      setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, ...updated } : c));
+      await updateCampaign(id, payload);
+      setCampaigns((prev) => prev.map((c) => c.id === id ? { ...c, ...payload } : c));
       setShowWizard(false);
       setEditCampaign(null);
       toast.success(payload.status === 'PUBLISHED' ? 'Campaign published!' : 'Draft updated.');

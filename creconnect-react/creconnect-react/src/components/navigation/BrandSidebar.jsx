@@ -15,6 +15,7 @@ const NAV = [
   { icon: '◉',  label: 'Collaborations',   to: ROUTES.BRAND_COLLABORATIONS },
   { icon: '💬', label: 'Messages',         to: ROUTES.BRAND_MESSAGES       },
   { icon: '🪪', label: 'Brand Portfolio',  to: ROUTES.BRAND_MY_PORTFOLIO   },
+  { icon: '💳', label: 'Payments',         to: ROUTES.BRAND_PAYMENTS       },
   { icon: '⚡', label: 'Activity',         to: ROUTES.BRAND_ACTIVITY       },
   { icon: '⚙',  label: 'Settings',         to: ROUTES.BRAND_SETTINGS       },
 ];

@@ -59,6 +59,8 @@ import BrandSettings         from '@/pages/brand/BrandSettings';
 import BrandReminders        from '@/pages/brand/BrandReminders';
 import BrandNotifications    from '@/pages/brand/BrandNotifications';
 import CreatorPortfolio      from '@/pages/brand/CreatorPortfolio';
+import BrandPayments         from '@/pages/brand/BrandPayments';
+import CreatorPayments       from '@/pages/creator/CreatorPayments';
 
 /* ── Admin pages ───────────────────────────────────────────── */
 import AdminLogin         from '@/pages/admin/AdminLogin';
@@ -123,6 +125,7 @@ const router = createBrowserRouter([
       { path: ROUTES.CREATOR_CAMPAIGNS,  element: <CreatorCampaigns /> },
       { path: ROUTES.CREATOR_COLLABS,    element: <Collaborations /> },
       { path: ROUTES.CREATOR_REVIEWS,    element: <Reviews /> },
+      { path: ROUTES.CREATOR_PAYMENTS,   element: <CreatorPayments /> },
       { path: ROUTES.CREATOR_PROFILE,    element: <CreatorProfile /> },
       { path: ROUTES.CREATOR_INFO,       element: <CreatorInfo /> },
       { path: ROUTES.CREATOR_MESSAGES,   element: <CreatorMessages /> },
@@ -150,6 +153,7 @@ const router = createBrowserRouter([
       { path: ROUTES.BRAND_NOTIFICATIONS,   element: <BrandNotifications /> },
       { path: ROUTES.BRAND_MY_PORTFOLIO,     element: <BrandPortfolio /> },
       { path: ROUTES.BRAND_CREATOR_PROFILE, element: <CreatorPortfolio /> },
+      { path: ROUTES.BRAND_PAYMENTS,        element: <BrandPayments /> },
     ],
   },
 

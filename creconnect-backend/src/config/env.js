@@ -36,5 +36,9 @@ module.exports = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
   BACKEND_URL:  process.env.BACKEND_URL  || 'http://localhost:5000',
 
+  STRIPE_SECRET_KEY:      process.env.STRIPE_SECRET_KEY,
+  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+  STRIPE_WEBHOOK_SECRET:  process.env.STRIPE_WEBHOOK_SECRET,
+
   IS_PROD: process.env.NODE_ENV === 'production',
 };

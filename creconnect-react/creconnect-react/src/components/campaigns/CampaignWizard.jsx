@@ -137,7 +137,7 @@ function campaignToForm(c) {
       videos:      c.videos      ?? 0,
       livestreams: c.livestreams ?? 0,
     },
-    creatorCount:   c.followerMin    ?? 3,
+    creatorCount:   3,
     deadline:       c.deadline ? new Date(c.deadline).toISOString().slice(0, 10) : todayPlus(30),
     platforms:      Array.isArray(c.platforms) ? c.platforms : ['INSTAGRAM'],
     creatorSizeMin: c.followerMin    ?? 10_000,
@@ -155,13 +155,16 @@ export default function CampaignWizard({ isOpen, onClose, onSubmit, onSaveDraft,
   const [hasDraft,  setHasDraft]  = useState(false);
   const autoSaveTimer = useRef(null);
 
-  // When editCampaign changes (drawer opens for a different draft), re-populate
+  // Sync form with editCampaign whenever the modal opens
   useEffect(() => {
-    if (isOpen && editCampaign) {
+    if (!isOpen) return;
+    if (editCampaign) {
       setForm(campaignToForm(editCampaign));
-      setStep(0);
       setHasDraft(false);
+    } else {
+      setForm(initialForm);
     }
+    setStep(0);
   }, [isOpen, editCampaign?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = (patch) => setForm((p) => ({ ...p, ...patch }));

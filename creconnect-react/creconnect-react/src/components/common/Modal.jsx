@@ -23,6 +23,8 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', d
   /* Render directly into document.body so that ancestor CSS transforms
      (e.g. the page-enter animation on <main>) cannot create a new
      containing block that clips position:fixed and hides the overlay. */
+  const scrollable = size === 'full' || size === '2xl' || size === 'xl';
+
   return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
@@ -36,7 +38,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', d
         className={clsx(
           'relative w-full rounded-2xl p-6 animate-fade-up',
           'border border-[var(--border)] shadow-[0_24px_80px_rgba(0,0,0,0.6)]',
-          size === 'full' ? 'max-h-[92vh] flex flex-col' : '',
+          scrollable ? 'max-h-[92vh] flex flex-col' : '',
           SIZE_CLASSES[size] ?? SIZE_CLASSES.md
         )}
         style={{ background: 'var(--surface)' }}
@@ -62,7 +64,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', d
           </button>
         </div>
 
-        {size === 'full' ? (
+        {scrollable ? (
           <div className="overflow-y-auto -mr-2 pr-2 flex-1 min-h-0">{children}</div>
         ) : children}
 

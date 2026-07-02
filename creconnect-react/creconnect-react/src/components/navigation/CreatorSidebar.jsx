@@ -14,6 +14,7 @@ const NAV = [
   { icon: '◈', label: 'Campaigns',     to: ROUTES.CREATOR_CAMPAIGNS   },
   { icon: '◉', label: 'Collaboration', to: ROUTES.CREATOR_COLLABS     },
   { icon: '★', label: 'Reviews',       to: ROUTES.CREATOR_REVIEWS     },
+  { icon: '💳', label: 'Payments',     to: ROUTES.CREATOR_PAYMENTS    },
   { icon: '💬', label: 'Messages',     to: ROUTES.CREATOR_MESSAGES    },
   { icon: '✦', label: 'Profile',       to: ROUTES.CREATOR_PROFILE     },
   { icon: '⚙', label: 'Information',   to: ROUTES.CREATOR_INFO        },

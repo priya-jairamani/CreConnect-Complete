@@ -9,10 +9,11 @@ import StatCard from '@/components/common/StatCard';
 import { formatPKR } from '@/utils/formatters';
 
 const STATUS_META = {
-  PENDING:  { label: 'Pending',  color: 'var(--fg-muted)',  bg: 'var(--surface-2)',              icon: '○' },
-  ESCROW:   { label: 'Escrow',   color: '#f59e0b',          bg: 'rgba(245,158,11,0.1)',           icon: '🔒' },
-  RELEASED: { label: 'Released', color: '#22c55e',          bg: 'rgba(34,197,94,0.1)',            icon: '✓' },
-  PAID:     { label: 'Paid',     color: '#22c55e',          bg: 'rgba(34,197,94,0.1)',            icon: '💰' },
+  PENDING:  { label: 'Pending',   color: 'var(--fg-muted)', bg: 'var(--surface-2)',          icon: '○' },
+  CHECKOUT: { label: 'Checkout…', color: '#8b5cf6',         bg: 'rgba(139,92,246,0.1)',      icon: '💳' },
+  ESCROW:   { label: 'Escrow',    color: '#f59e0b',         bg: 'rgba(245,158,11,0.1)',      icon: '🔒' },
+  RELEASED: { label: 'Released',  color: '#22c55e',         bg: 'rgba(34,197,94,0.1)',       icon: '✓' },
+  PAID:     { label: 'Paid',      color: '#22c55e',         bg: 'rgba(34,197,94,0.1)',       icon: '💰' },
 };
 
 function StatusChip({ status }) {
@@ -39,12 +40,12 @@ export default function BrandPayments() {
     setLoading(true);
     try {
       const [collabRes, payRes] = await Promise.all([
-        brandsApi.getCollaborations({}),
-        paymentsApi.getHistory(),
+        brandsApi.getCollaborations({ limit: 200 }),
+        paymentsApi.getHistory({ limit: 200 }),
       ]);
       const collabList  = Array.isArray(collabRes.data) ? collabRes.data : (collabRes.data?.data ?? []);
       const paymentList = Array.isArray(payRes.data)   ? payRes.data   : (payRes.data?.data   ?? []);
-      setCollabs(collabList.filter(c => c.status === 'ACCEPTED'));
+      setCollabs(collabList.filter(c => c.status === 'ACCEPTED' || c.rawStatus === 'ACCEPTED'));
       setPayments(paymentList);
     } catch {
       toast.error('Failed to load payments');
@@ -64,17 +65,31 @@ export default function BrandPayments() {
   const handleEscrow = useCallback(async (collabId) => {
     setBusy(p => ({ ...p, [collabId]: true }));
     try {
-      await paymentsApi.createEscrow(collabId);
-      toast.success('Payment locked in escrow');
-      await load();
+      const res = await paymentsApi.createEscrow(collabId);
+      const checkoutUrl = res.data?.checkoutUrl;
+      if (!checkoutUrl) throw new Error('No checkout URL returned');
+      window.location.href = checkoutUrl; // hand off to Stripe Checkout
+      return;
     } catch (err) {
-      toast.error(err?.message || 'Failed to lock escrow');
-    } finally {
+      toast.error(err?.message || 'Failed to start checkout');
       setBusy(p => ({ ...p, [collabId]: false }));
     }
+  }, [toast]);
+
+  // Returning from Stripe Checkout — the webhook has (usually) already
+  // confirmed escrow by the time the browser gets back here.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const escrow = params.get('escrow');
+    if (!escrow) return;
+    if (escrow === 'success') toast.success('Payment locked in escrow');
+    if (escrow === 'cancelled') toast.error('Checkout was cancelled');
+    window.history.replaceState({}, '', window.location.pathname);
+    load();
   }, [load, toast]);
 
   const handleRelease = useCallback(async (paymentId, collabId) => {
+    if (!window.confirm('Release payment to the creator? This cannot be undone.')) return;
     setBusy(p => ({ ...p, [collabId]: true }));
     try {
       await paymentsApi.releasePayment(paymentId);
@@ -91,7 +106,7 @@ export default function BrandPayments() {
   const kpis = useMemo(() => {
     const inEscrow  = payments.filter(p => p.status === 'ESCROW').reduce((s, p) => s + (p.amountPKR || 0), 0);
     const released  = payments.filter(p => ['RELEASED','PAID'].includes(p.status)).reduce((s, p) => s + (p.amountPKR || 0), 0);
-    const pending   = rows.filter(r => !r.payment || r.payment.status === 'PENDING').length;
+    const pending   = rows.filter(r => !r.payment).length;
     const total     = inEscrow + released;
     return { total, inEscrow, released, pending };
   }, [payments, rows]);
@@ -157,7 +172,8 @@ export default function BrandPayments() {
           rows.map(({ collab, payment }) => {
             const creator  = collab.creator  ?? {};
             const campaign = collab.campaign ?? {};
-            const payStatus = payment?.status ?? 'PENDING';
+            // null → no payment yet; 'PENDING' → Stripe session open (not confirmed yet)
+            const payStatus = !payment ? 'PENDING' : payment.status === 'PENDING' ? 'CHECKOUT' : payment.status;
             const amount    = collab.offerAmountPKR || campaign.budgetPKR || 0;
             const isBusy    = !!busy[collab.id];
 
@@ -211,6 +227,17 @@ export default function BrandPayments() {
                       onClick={() => handleEscrow(collab.id)}
                     >
                       🔒 Lock Escrow
+                    </Button>
+                  )}
+                  {payStatus === 'CHECKOUT' && (
+                    <Button
+                      variant="primary"
+                      size="xs"
+                      disabled={isBusy}
+                      isLoading={isBusy}
+                      onClick={() => handleEscrow(collab.id)}
+                    >
+                      💳 Complete Payment
                     </Button>
                   )}
                   {payStatus === 'ESCROW' && (

@@ -323,7 +323,9 @@ export default function CampaignDetailDrawer({ campaign, isOpen, onClose, onUpda
 
         {/* ── Invite Creators ───────────────────────────────────── */}
         <Section title="Invite Creators">
-          {!inviteOpen ? (
+          {c.status === 'COMPLETED' ? (
+            <p className="text-fg-muted text-xs">This campaign has ended. No new creators can be added.</p>
+          ) : !inviteOpen ? (
             <Button variant="secondary" size="sm" onClick={() => setInviteOpen(true)}>
               + Find &amp; Invite Creators
             </Button>
