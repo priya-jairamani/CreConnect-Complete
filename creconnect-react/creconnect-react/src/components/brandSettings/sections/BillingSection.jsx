@@ -68,9 +68,11 @@ export default function BillingSection({ subscription, plans, onManageBilling, o
                 <Button
                   variant={active ? 'secondary' : 'outline'}
                   size="xs"
-                  disabled={active || !p.selfServe || busyTier === p.tier}
+                  disabled={active || busyTier === p.tier}
                   isLoading={busyTier === p.tier}
-                  onClick={() => onChangePlan(p.tier)}
+                  onClick={() => p.selfServe
+                    ? onChangePlan(p.tier)
+                    : (window.location.href = `mailto:sales@creconnect.com?subject=${encodeURIComponent(`${p.name} plan inquiry`)}`)}
                 >
                   {active ? 'Current Plan' : p.selfServe ? 'Switch' : 'Contact Sales'}
                 </Button>

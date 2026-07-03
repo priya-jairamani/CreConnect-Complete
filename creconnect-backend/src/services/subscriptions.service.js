@@ -70,6 +70,29 @@ async function createCheckoutSession(userId, role, tier) {
   if (!user) throw new NotFoundError('User not found');
 
   let sub = await Subscription.findOne({ where: { userId } });
+
+  // Already has an active paid subscription — swap the price on that same
+  // subscription (with proration) instead of starting a second, parallel one.
+  if (sub?.status === 'ACTIVE' && sub.stripeSubscriptionId) {
+    const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+    const itemId = stripeSub.items.data[0].id;
+    const updated = await stripe.subscriptions.update(sub.stripeSubscriptionId, {
+      items: [{ id: itemId, price: plan.stripePriceId }],
+      proration_behavior: 'create_prorations',
+    });
+    const { start, end } = periodWindow(updated);
+    await sub.update({
+      planTier: tier,
+      stripePriceId: plan.stripePriceId,
+      currentPeriodStart: start,
+      currentPeriodEnd: end,
+      campaignLimit: plan.campaignLimit,
+      collabLimit: plan.collabLimit,
+      aiEnabled: plan.aiEnabled,
+    });
+    return { switched: true };
+  }
+
   let customerId = sub?.stripeCustomerId;
   if (!customerId) {
     const customer = await stripe.customers.create({ email: user.email, metadata: { userId, role } });
@@ -144,11 +167,15 @@ async function handleSubscriptionUpdated(stripeSubscription) {
   const plan = newTier ? getPlan(sub.role, newTier) : null;
   const { start, end } = periodWindow(stripeSubscription);
 
+  // Some Stripe API versions report a scheduled cancellation via the boolean
+  // cancel_at_period_end, others via a cancel_at timestamp instead — check both.
+  const cancelAtPeriodEnd = !!stripeSubscription.cancel_at_period_end || !!stripeSubscription.cancel_at;
+
   await sub.update({
     status: STATUS_MAP[stripeSubscription.status] ?? sub.status,
     currentPeriodStart: start,
     currentPeriodEnd: end,
-    cancelAtPeriodEnd: !!stripeSubscription.cancel_at_period_end,
+    cancelAtPeriodEnd,
     ...(plan ? { planTier: newTier, stripePriceId: priceId, campaignLimit: plan.campaignLimit, collabLimit: plan.collabLimit, aiEnabled: plan.aiEnabled } : {}),
   });
 }

@@ -100,12 +100,16 @@ export default function CreatorPayments() {
     setBillingBusyTier(tier);
     try {
       const { data } = await subscriptionsApi.checkout(tier);
-      window.location.href = data.url;
+      if (data.url) { window.location.href = data.url; return; }
+      // Already had an active plan — the switch happened immediately, no redirect needed
+      toast.success('Plan updated!');
+      await loadBilling();
+      setBillingBusyTier(null);
     } catch (err) {
       toast.error(err?.message || 'Failed to start checkout');
       setBillingBusyTier(null);
     }
-  }, [toast]);
+  }, [toast, loadBilling]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -274,9 +278,11 @@ export default function CreatorPayments() {
                   <Button
                     variant={active ? 'secondary' : 'outline'}
                     size="xs"
-                    disabled={active || !p.selfServe || billingBusyTier === p.tier}
+                    disabled={active || billingBusyTier === p.tier}
                     isLoading={billingBusyTier === p.tier}
-                    onClick={() => handleChangePlan(p.tier)}
+                    onClick={() => p.selfServe
+                      ? handleChangePlan(p.tier)
+                      : (window.location.href = `mailto:sales@creconnect.com?subject=${encodeURIComponent(`${p.name} plan inquiry`)}`)}
                   >
                     {active ? 'Current Plan' : p.selfServe ? 'Switch' : 'Contact Sales'}
                   </Button>
