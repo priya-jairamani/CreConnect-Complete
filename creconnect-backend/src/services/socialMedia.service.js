@@ -200,6 +200,30 @@ const FETCHERS = {
   },
 };
 
+// Real engagement rate from actually-synced posts: average (likes + comments) / followers
+// per post. Requires real follower count and at least one synced post — otherwise leaves
+// the rate untouched rather than writing a fabricated number.
+async function updateEngagementRate(platformId) {
+  const { SocialPlatform, SocialPost, CreatorProfile } = require('../models');
+
+  const platform = await SocialPlatform.findByPk(platformId);
+  if (!platform || !platform.followerCount) return;
+
+  const posts = await SocialPost.findAll({ where: { platformId }, order: [['postedAt', 'DESC']], limit: 20 });
+  if (!posts.length) return;
+
+  const avgRate = posts.reduce((sum, p) => sum + ((p.likeCount + p.commentCount) / platform.followerCount) * 100, 0) / posts.length;
+  await platform.update({ engagementRate: Math.round(avgRate * 100) / 100 });
+
+  // Roll up into the creator's overall profile as a simple average across their connected platforms
+  const allPlatforms = await SocialPlatform.findAll({ where: { creatorId: platform.creatorId } });
+  const rated = allPlatforms.filter((p) => p.engagementRate > 0);
+  if (rated.length) {
+    const overall = rated.reduce((s, p) => s + p.engagementRate, 0) / rated.length;
+    await CreatorProfile.update({ engagementRate: Math.round(overall * 100) / 100 }, { where: { id: platform.creatorId } });
+  }
+}
+
 async function fetchPlatformProfile(platform, accessToken) {
   const fetcher = FETCHERS[platform]?.profile;
   if (!fetcher) throw new Error(`No profile fetcher for ${platform}`);
@@ -212,4 +236,4 @@ async function fetchPlatformMedia(platform, accessToken, platformUserId) {
   return fetcher(accessToken, platformUserId);
 }
 
-module.exports = { exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken, fetchPlatformProfile, fetchPlatformMedia };
+module.exports = { exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken, fetchPlatformProfile, fetchPlatformMedia, updateEngagementRate };

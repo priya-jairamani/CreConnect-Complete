@@ -4,7 +4,7 @@ const jwt     = require('jsonwebtoken');
 const { Op }  = require('sequelize');
 const { CreatorProfile, BrandProfile, SocialPlatform, SocialPost } = require('../models');
 const { JWT_ACCESS_SECRET, FRONTEND_URL } = require('../config/env');
-const { fetchPlatformProfile, fetchPlatformMedia, exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken } = require('../services/socialMedia.service');
+const { fetchPlatformProfile, fetchPlatformMedia, exchangeInstagramLongLivedToken, exchangeFacebookLongLivedToken, updateEngagementRate } = require('../services/socialMedia.service');
 
 const CALLBACK_BASE = process.env.BACKEND_URL || 'http://localhost:5000';
 
@@ -138,6 +138,7 @@ async function handleCallback(req, res) {
         const posts = await fetchPlatformMedia(platform, accessToken, profile.platformUserId);
         console.log(`[${platform}] Media fetched: ${posts.length} posts`);
         if (posts.length) await SocialPost.bulkCreate(posts.map((p) => ({ ...p, platformId: platformRecord.id })), { updateOnDuplicate: ['caption','mediaUrl','thumbnailUrl','permalink','likeCount','commentCount','viewCount','shareCount','updatedAt'], ignoreDuplicates: false });
+        await updateEngagementRate(platformRecord.id);
       } catch (e) { console.warn(`[${platform}] Media sync failed:`, e?.message); }
     } else if (role === 'BRAND') {
       const fm = { TWITTER:'twitter', INSTAGRAM:'instagram', TIKTOK:'tiktok', YOUTUBE:'youtube', LINKEDIN:'linkedin', FACEBOOK:'facebook' };
@@ -174,6 +175,7 @@ async function syncPosts(req, res, next) {
     const posts = await fetchPlatformMedia(platform.name, platform.accessToken, platform.platformUserId);
     if (posts.length) await SocialPost.bulkCreate(posts.map((p) => ({ ...p, platformId: platform.id })), { updateOnDuplicate: ['caption','mediaUrl','thumbnailUrl','permalink','likeCount','commentCount','viewCount','shareCount','updatedAt'], ignoreDuplicates: false });
     await platform.update({ lastSyncedAt: new Date() });
+    await updateEngagementRate(platform.id);
     res.json({ success: true, data: { synced: posts.length } });
   } catch (err) { next(err); }
 }

@@ -64,7 +64,6 @@ export default function BrandDashboard() {
   ];
 
   const spendSeries  = analytics?.spendSeries?.map((p) => p.amount)  ?? [];
-  const reachSeries  = analytics?.reachSeries?.map((p) => p.value ?? p.amount) ?? [];
 
   return (
     <div className="p-6 space-y-6">
@@ -110,12 +109,14 @@ export default function BrandDashboard() {
               <h3 className="font-semibold text-fg text-sm" style={{ fontFamily: 'Sora, sans-serif' }}>Audience Reach</h3>
               <p className="text-fg-muted text-xs">Estimated reach</p>
             </div>
-            <Badge variant="brand" label="Growing" />
+            <Badge variant="neutral" label="Not available yet" />
           </div>
           <div className="text-2xl font-bold text-fg mb-1" style={{ fontFamily: 'Sora, sans-serif' }}>
             <AnimatedCounter value={m.totalReach ?? 0} format={formatFollowers} />
           </div>
-          <Sparkline data={reachSeries} color="#f59e0b" />
+          <p className="text-fg-muted text-xs">
+            Reach tracking per campaign isn&apos;t implemented yet.
+          </p>
         </div>
       </section>
 
