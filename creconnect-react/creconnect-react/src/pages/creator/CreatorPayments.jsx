@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { paymentsApi } from '@/api/payments.api';
 import { creatorsApi } from '@/api/creators.api';
+import { subscriptionsApi } from '@/api/subscriptions.api';
 import Skeleton from '@/components/common/Skeleton';
 import StatCard from '@/components/common/StatCard';
 import Button from '@/components/common/Button';
@@ -60,6 +61,51 @@ export default function CreatorPayments() {
   const [payoutsEnabled, setPayoutsEnabled] = useState(true); // assume true until profile loads, to avoid a flash of the banner
   const [onboarding, setOnboarding] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [billingBusyTier, setBillingBusyTier] = useState(null);
+
+  const loadBilling = useCallback(() => {
+    Promise.all([subscriptionsApi.getMine(), subscriptionsApi.listPlans()])
+      .then(([subRes, plansRes]) => {
+        setSubscription(subRes.data);
+        setPlans(Array.isArray(plansRes.data) ? plansRes.data : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { loadBilling(); }, [loadBilling]);
+
+  // Returning from a subscription Checkout session
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('subscription');
+    if (!result) return;
+    if (result === 'success') toast.success('Subscription updated!');
+    if (result === 'cancelled') toast.error('Checkout was cancelled');
+    window.history.replaceState({}, '', window.location.pathname);
+    loadBilling();
+  }, [loadBilling, toast]);
+
+  const handleManageBilling = useCallback(async () => {
+    try {
+      const { data } = await subscriptionsApi.billingPortal();
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err?.message || 'No billing account yet — subscribe to a plan first.');
+    }
+  }, [toast]);
+
+  const handleChangePlan = useCallback(async (tier) => {
+    setBillingBusyTier(tier);
+    try {
+      const { data } = await subscriptionsApi.checkout(tier);
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err?.message || 'Failed to start checkout');
+      setBillingBusyTier(null);
+    }
+  }, [toast]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -176,6 +222,70 @@ export default function CreatorPayments() {
         <StatCard icon="🔒" value={formatPKR(kpis.inEscrow)}    label="In Escrow"      />
         <StatCard icon="○"  value={kpis.pendingBrands}          label="Pending Brands" />
       </div>
+
+      {/* Subscription plan */}
+      {subscription && (
+        <div className="card rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-bold text-fg text-lg" style={{ fontFamily: 'Sora, sans-serif' }}>{subscription.name} Plan</p>
+              <p className="text-fg-muted text-sm mt-0.5">
+                {subscription.price === null ? 'Custom pricing' : subscription.price === 0 ? 'Free' : `${formatPKR(subscription.price)} / month`}
+                {!subscription.aiEnabled && ' · AI features locked'}
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={handleManageBilling}>Manage Billing</Button>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between text-sm mb-1.5">
+              <span className="text-fg">New brand collaborations this month</span>
+              <span className="text-fg-muted">
+                {subscription.used} / {Number.isFinite(subscription.collabLimit) ? subscription.collabLimit : '∞'}
+              </span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: Number.isFinite(subscription.collabLimit)
+                    ? `${Math.min(100, Math.round((subscription.used / subscription.collabLimit) * 100))}%`
+                    : '8%',
+                  background: 'var(--brand-500)',
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+            {plans.map((p) => {
+              const active = p.tier === subscription.tier;
+              return (
+                <div
+                  key={p.tier}
+                  className="rounded-xl p-3 flex flex-col gap-1.5"
+                  style={active ? { border: '1px solid var(--brand-500)', background: 'rgba(109,92,255,0.08)' } : { background: 'var(--surface-2)' }}
+                >
+                  <p className="text-fg font-semibold text-sm">{p.name}</p>
+                  <p className="text-fg font-bold" style={{ fontFamily: 'Sora, sans-serif' }}>
+                    {p.price === null ? 'Custom' : p.price === 0 ? 'Free' : formatPKR(p.price)}
+                  </p>
+                  <p className="text-fg-muted text-xs">{Number.isFinite(p.collabLimit) ? `${p.collabLimit} brands/mo` : 'Unlimited brands'}</p>
+                  <Button
+                    variant={active ? 'secondary' : 'outline'}
+                    size="xs"
+                    disabled={active || !p.selfServe || billingBusyTier === p.tier}
+                    isLoading={billingBusyTier === p.tier}
+                    onClick={() => handleChangePlan(p.tier)}
+                  >
+                    {active ? 'Current Plan' : p.selfServe ? 'Switch' : 'Contact Sales'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Info banner */}
       <div

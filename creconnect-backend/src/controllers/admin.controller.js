@@ -1,4 +1,5 @@
 const svc = require('../services/admin.service');
+const subscriptionsSvc = require('../services/subscriptions.service');
 const { ok, paginated } = require('../utils/response');
 
 const listUsers = async (req, res, next) => {
@@ -43,4 +44,12 @@ const getAuditLogs = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs };
+const grantEnterprisePlan = async (req, res, next) => {
+  try {
+    const { role, campaignLimit, collabLimit } = req.body;
+    const sub = await subscriptionsSvc.grantEnterpriseSubscription(req.user.id, req.params.userId, role, { campaignLimit, collabLimit });
+    ok(res, sub, 'Enterprise plan granted');
+  } catch (e) { next(e); }
+};
+
+module.exports = { listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs, grantEnterprisePlan };

@@ -3,11 +3,13 @@ const { Campaign, BrandProfile, Application, Collaboration, CreatorProfile, User
 const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const notificationsSvc = require('./notifications.service');
+const entitlementsSvc = require('./entitlements.service');
 const { logActivity } = require('../utils/activity');
 
 async function create(userId, data) {
   const brand = await BrandProfile.findOne({ where: { userId } });
   if (!brand) throw new ForbiddenError('Only brands can create campaigns');
+  await entitlementsSvc.canCreateCampaign(userId);
   const campaign = await Campaign.create({ ...data, brandId: brand.id });
   const result = await campaign.reload({ include: [{ model: BrandProfile, as: 'brand' }] });
   const isDraft = (data.status ?? 'PUBLISHED') === 'DRAFT';
@@ -113,6 +115,13 @@ async function respondToApplication(appId, action, userId) {
   if (!brand || app.campaign.brandId !== brand.id) throw new ForbiddenError();
 
   const status = action === 'accept' ? 'ACCEPTED' : 'REJECTED';
+  const creator = await CreatorProfile.findByPk(app.creatorId, { include: [{ model: User, as: 'user' }] });
+
+  if (status === 'ACCEPTED') {
+    await entitlementsSvc.canAcceptCreatorOnCampaign(app.campaignId, userId);
+    if (creator?.userId) await entitlementsSvc.canAcceptCollaboration(creator.userId);
+  }
+
   await app.update({ status });
 
   if (status === 'ACCEPTED') {
@@ -126,7 +135,6 @@ async function respondToApplication(appId, action, userId) {
   }
 
   // Notify the creator about their application result
-  const creator = await CreatorProfile.findByPk(app.creatorId, { include: [{ model: User, as: 'user' }] });
   if (creator?.userId) {
     const campaignTitle = app.campaign?.title ?? 'your campaign application';
     const brandName     = brand?.companyName   ?? 'A brand';
@@ -219,10 +227,14 @@ async function creatorRespondToInvitation(appId, action, userId) {
   if (app.status !== 'INVITED') throw new Error('This invitation has already been responded to');
 
   const newStatus = action === 'accept' ? 'ACCEPTED' : 'REJECTED';
-  await app.update({ status: newStatus });
-
-  // Notify the brand
   const brand = await BrandProfile.findOne({ where: { id: app.campaign?.brandId } });
+
+  if (newStatus === 'ACCEPTED') {
+    await entitlementsSvc.canAcceptCollaboration(userId);
+    if (brand?.userId) await entitlementsSvc.canAcceptCreatorOnCampaign(app.campaignId, brand.userId);
+  }
+
+  await app.update({ status: newStatus });
 
   if (newStatus === 'ACCEPTED') {
     // Create the collaboration record so the creator sees it in Active campaigns

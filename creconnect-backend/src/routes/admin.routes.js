@@ -223,4 +223,24 @@ router.post('/announce', ctrl.announce);
  */
 router.get('/audit-logs', ctrl.getAuditLogs);
 
+/**
+ * @swagger
+ * /admin/users/{userId}/enterprise-plan:
+ *   post:
+ *     summary: Manually grant a custom Enterprise subscription (sales-assisted, no Stripe checkout)
+ *     tags: [Admin]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role: { type: string, enum: [BRAND, CREATOR] }
+ *               campaignLimit: { type: integer, nullable: true, description: "null = unlimited" }
+ *               collabLimit: { type: integer, nullable: true, description: "null = unlimited" }
+ *     responses:
+ *       200: { description: Subscription granted }
+ */
+router.post('/users/:userId/enterprise-plan', ctrl.grantEnterprisePlan);
+
 module.exports = router;

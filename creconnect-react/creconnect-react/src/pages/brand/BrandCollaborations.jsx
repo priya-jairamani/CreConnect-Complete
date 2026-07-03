@@ -286,6 +286,7 @@ function ReviewsTab({ collaborations }) {
 
 export default function BrandCollaborations() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [collaborations,   setCollaborations]   = useState([]);
   const [applications,     setApplications]     = useState([]);
@@ -323,9 +324,13 @@ export default function BrandCollaborations() {
   useEffect(() => { loadApps();    }, [loadApps]);
 
   const handleRespond = useCallback(async (appId, action) => {
-    await campaignsApi.respondApplication(appId, action);
-    await Promise.all([loadApps(), loadCollabs()]);
-  }, [loadApps, loadCollabs]);
+    try {
+      await campaignsApi.respondApplication(appId, action);
+      await Promise.all([loadApps(), loadCollabs()]);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to respond to application.');
+    }
+  }, [loadApps, loadCollabs, toast]);
 
   const handleMessage = useCallback((userId) => {
     navigate(ROUTES.BRAND_MESSAGES + (userId ? `?userId=${userId}` : ''));

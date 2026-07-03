@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { brandsApi } from '@/api/brands.api';
+import { subscriptionsApi } from '@/api/subscriptions.api';
 import { useToast } from '@/hooks/useToast';
 import { ROUTES } from '@/constants/routes';
 
 import { getBrandIntel, getBrandHealthScore } from '@/utils/mockBrandIntel';
 import {
   getTeamMembers, getIntegrations, getApiKeys, getWebhooks,
-  getSubscription, getInvoices, getPaymentMethods, getFinancialSummary,
+  getPaymentMethods, getFinancialSummary,
   getSecurityCenter, getWorkspaceAnalytics, getReputationScores, getProfileCompletion,
 } from '@/utils/mockBrandSettings';
 
@@ -199,8 +200,52 @@ export default function BrandSettings() {
   const integrations = useMemo(() => getIntegrations(brand ?? {}), [brand]);
   const apiKeys = useMemo(() => getApiKeys(brand ?? {}), [brand]);
   const webhooks = useMemo(() => getWebhooks(brand ?? {}), [brand]);
-const subscription = useMemo(() => getSubscription(brand ?? {}, intel), [brand, intel]);
-  const invoices = useMemo(() => getInvoices(brand ?? {}, subscription.plan), [brand, subscription]);
+const [subscription, setSubscription] = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [billingBusyTier, setBillingBusyTier] = useState(null);
+
+  const loadBilling = useCallback(() => {
+    Promise.all([subscriptionsApi.getMine(), subscriptionsApi.listPlans()])
+      .then(([subRes, plansRes]) => {
+        setSubscription(subRes.data);
+        setPlans(Array.isArray(plansRes.data) ? plansRes.data : []);
+      })
+      .catch(() => toast.error('Failed to load billing info'));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { loadBilling(); }, [loadBilling]);
+
+  // Returning from a subscription Checkout session
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('subscription');
+    if (!result) return;
+    if (result === 'success') toast.success('Subscription updated!');
+    if (result === 'cancelled') toast.error('Checkout was cancelled');
+    window.history.replaceState({}, '', window.location.pathname);
+    loadBilling();
+  }, [loadBilling, toast]);
+
+  const handleManageBilling = useCallback(async () => {
+    try {
+      const { data } = await subscriptionsApi.billingPortal();
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err?.message || 'No billing account yet — subscribe to a plan first.');
+    }
+  }, [toast]);
+
+  const handleChangePlan = useCallback(async (tier) => {
+    setBillingBusyTier(tier);
+    try {
+      const { data } = await subscriptionsApi.checkout(tier);
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err?.message || 'Failed to start checkout');
+      setBillingBusyTier(null);
+    }
+  }, [toast]);
+
   const paymentMethods = useMemo(() => getPaymentMethods(brand ?? {}), [brand]);
   const financials = useMemo(() => getFinancialSummary(brand ?? {}, intel), [brand, intel]);
   const security = useMemo(() => getSecurityCenter(brand ?? {}), [brand]);
@@ -391,7 +436,7 @@ const subscription = useMemo(() => getSubscription(brand ?? {}, intel), [brand, 
         brandHealthScore={healthScore.overall}
         profileCompletion={profileCompletion}
         isVerified={brand?.isVerified}
-        planName={subscription.plan.name}
+        planName={subscription?.name ?? '—'}
         activeCampaigns={intel.activeCampaigns}
         satisfactionScore={intel.satisfactionScore}
         trustScore={intel.trustScore}
@@ -509,12 +554,17 @@ const subscription = useMemo(() => getSubscription(brand ?? {}, intel), [brand, 
 
           <div ref={(el) => { sectionRefs.current['billing'] = el; }}>
             <SettingsSectionCard id="billing" icon="💎" title="Subscription & Billing" subtitle="Plan, usage, and invoices">
-              <BillingSection
-                subscription={subscription}
-                invoices={invoices}
-                onUpgrade={() => toast.info('Plan upgrades are coming soon.')}
-                onChangePlan={() => toast.info('Plan changes are coming soon.')}
-              />
+              {subscription ? (
+                <BillingSection
+                  subscription={subscription}
+                  plans={plans}
+                  onManageBilling={handleManageBilling}
+                  onChangePlan={handleChangePlan}
+                  busyTier={billingBusyTier}
+                />
+              ) : (
+                <p className="text-fg-muted text-sm">Loading billing info…</p>
+              )}
             </SettingsSectionCard>
           </div>
 

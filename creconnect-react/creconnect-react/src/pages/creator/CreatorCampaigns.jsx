@@ -478,10 +478,14 @@ export default function CreatorCampaigns() {
   }, [toast]);
 
   const handleAcceptOffer = useCallback(async (offer) => {
-    await campaignsApi.respondToInvitation(offer.id, 'accept');
-    setOffers((prev) => prev.filter((o) => o.id !== offer.id));
-    toast.success('Invitation accepted! The brand has been notified.');
-    loadCollabs();
+    try {
+      await campaignsApi.respondToInvitation(offer.id, 'accept');
+      setOffers((prev) => prev.filter((o) => o.id !== offer.id));
+      toast.success('Invitation accepted! The brand has been notified.');
+      loadCollabs();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to accept invitation.');
+    }
   }, [toast, loadCollabs]);
 
   const handleDeclineOffer = useCallback(async (offer) => {

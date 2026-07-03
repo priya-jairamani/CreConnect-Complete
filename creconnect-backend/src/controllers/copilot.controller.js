@@ -3,6 +3,8 @@
 const { detectIntent }  = require('../services/copilot/intentDetector');
 const fetcher           = require('../services/copilot/dataFetcher');
 const { buildReply }    = require('../services/copilot/responseBuilder');
+const { hasAI }         = require('../services/entitlements.service');
+const { ForbiddenError } = require('../utils/errors');
 
 async function chat(req, res, next) {
   try {
@@ -13,6 +15,11 @@ async function chat(req, res, next) {
 
     const role   = req.user.role;   // 'BRAND' | 'CREATOR' | 'ADMIN'
     const userId = req.user.id;
+
+    if (role !== 'ADMIN' && !(await hasAI(userId, role))) {
+      throw new ForbiddenError('AI Copilot is available on paid plans — upgrade to use it.');
+    }
+
     const { intent, params } = detectIntent(message);
 
     let data = {};

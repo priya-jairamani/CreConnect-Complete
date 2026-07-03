@@ -7,11 +7,22 @@ const path        = require('path');
 const HybridEngine   = require(path.join(__dirname, '../../../ai-recommender/engine/index'));
 const { authenticate } = require('../middleware/auth');
 const { authorize }    = require('../middleware/authorize');
+const { hasAI }        = require('../services/entitlements.service');
 const db               = require('../models');
 
 const router  = Router();
 const engine  = new HybridEngine();
 let engineReady = false;
+
+// AI recommender matches are a paid-plan feature for both roles; admins are exempt.
+async function requireAI(req, res, next) {
+  try {
+    if (req.user.role !== 'ADMIN' && !(await hasAI(req.user.id, req.user.role))) {
+      return res.status(403).json({ success: false, message: 'AI matching is available on paid plans — upgrade to use it.' });
+    }
+    next();
+  } catch (err) { next(err); }
+}
 
 // ── Engine loader ─────────────────────────────────────────────────────────────
 
@@ -81,7 +92,7 @@ router.post('/run', authenticate, authorize('ADMIN'), async (req, res, next) => 
  * GET /api/v1/ai/matches/brand/:brandId
  * Returns stored top matches for a brand (BRAND or ADMIN).
  */
-router.get('/matches/brand/:brandId', authenticate, async (req, res, next) => {
+router.get('/matches/brand/:brandId', authenticate, requireAI, async (req, res, next) => {
   try {
     const limit = Number(req.query.limit) || 10;
 
@@ -104,7 +115,7 @@ router.get('/matches/brand/:brandId', authenticate, async (req, res, next) => {
  * GET /api/v1/ai/matches/creator/:creatorId
  * Returns stored brand matches for a creator (CREATOR or ADMIN).
  */
-router.get('/matches/creator/:creatorId', authenticate, async (req, res, next) => {
+router.get('/matches/creator/:creatorId', authenticate, requireAI, async (req, res, next) => {
   try {
     const limit = Number(req.query.limit) || 10;
 
@@ -150,7 +161,7 @@ router.post('/feedback', authenticate, async (req, res, next) => {
  * GET /api/v1/ai/matches/brand/:brandId/live
  * Bypasses stored results and scores live. Good for testing new profiles.
  */
-router.get('/matches/brand/:brandId/live', authenticate, async (req, res, next) => {
+router.get('/matches/brand/:brandId/live', authenticate, requireAI, async (req, res, next) => {
   try {
     engineReady = false;
     await ensureEngineLoaded();

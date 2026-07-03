@@ -49,7 +49,7 @@ export default function Campaigns() {
       setShowWizard(false);
       toast.success('Campaign launched successfully.');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to create campaign.');
+      toast.error(err?.message || 'Failed to create campaign.');
     }
     setIsCreating(false);
   };
@@ -61,7 +61,7 @@ export default function Campaigns() {
       setCampaigns((prev) => [draft, ...prev]);
       toast.success('Draft saved — you can finish it anytime.');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Could not save draft.');
+      toast.error(err?.message || 'Could not save draft.');
     }
     setIsSavingDraft(false);
   };
@@ -75,7 +75,7 @@ export default function Campaigns() {
       setEditCampaign(null);
       toast.success(payload.status === 'PUBLISHED' ? 'Campaign published!' : 'Draft updated.');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Could not update campaign.');
+      toast.error(err?.message || 'Could not update campaign.');
     }
     setIsCreating(false);
   };

@@ -12,6 +12,7 @@ router.use('/search',        require('./search.routes'));
 router.use('/matching',      require('./matching.routes'));
 router.use('/analytics',     require('./analytics.routes'));
 router.use('/payments',      require('./payments.routes'));
+router.use('/subscriptions', require('./subscriptions.routes'));
 router.use('/upload',        require('./upload.routes'));
 router.use('/social',        require('./social.routes'));
 router.use('/verification',  require('./verification.routes'));
