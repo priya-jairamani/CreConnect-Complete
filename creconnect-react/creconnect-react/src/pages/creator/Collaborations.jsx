@@ -63,6 +63,13 @@ function normalizeCollaboration(c) {
     deadline:        c.endDate   ?? c.deadline  ?? null,
     budget:          c.offerAmountPKR ?? c.budgetPKR ?? c.budget ?? 0,
     createdAt:       c.createdAt ?? c.startDate ?? null,
+    requirements: {
+      REEL:       c.campaign?.reels       ?? 0,
+      POST:       c.campaign?.posts       ?? 0,
+      STORY:      c.campaign?.stories     ?? 0,
+      VIDEO:      c.campaign?.videos      ?? 0,
+      LIVESTREAM: c.campaign?.livestreams ?? 0,
+    },
   };
 }
 

@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     Collaboration.belongsTo(models.CreatorProfile, { foreignKey: 'creatorId',  as: 'creator' });
     Collaboration.belongsTo(models.BrandProfile,   { foreignKey: 'brandId',    as: 'brand' });
     Collaboration.hasMany(models.Payment,          { foreignKey: 'collaborationId', as: 'payments', onDelete: 'CASCADE' });
+    Collaboration.hasMany(models.Deliverable,      { foreignKey: 'collaborationId', as: 'deliverables', onDelete: 'CASCADE' });
   };
 
   return Collaboration;

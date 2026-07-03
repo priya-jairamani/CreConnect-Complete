@@ -4,11 +4,6 @@ import Drawer from '@/components/common/Drawer';
 import Avatar from '@/components/common/Avatar';
 import Badge from '@/components/common/Badge';
 import { DRAWER_TABS, STAGE_BADGE_VARIANT, DB_STAGE_TO_KANBAN, DB_STATUS_TO_KANBAN } from '@/constants/collaborationOptions';
-import {
-  getCollaborationIntel, getCollaborationTimeline, getDeliverables, getContract,
-  getPaymentBreakdown, getPerformanceMetrics, getCollaborationAIInsights,
-  getMessages, getActivityFeed, getDocuments,
-} from '@/utils/mockCollaborationIntel';
 import OverviewTab from '@/components/collaboration/details/OverviewTab';
 import TimelineTab from '@/components/collaboration/details/TimelineTab';
 import DeliverablesTab from '@/components/collaboration/details/DeliverablesTab';
@@ -37,29 +32,15 @@ export default function CollabDrawer({ item, isOpen, onClose }) {
     if (isOpen) setActiveTab('overview');
   }, [isOpen, item?.id]);
 
+  // Real fields only — no mock fallback for anything shown to the user.
   const intel = useMemo(() => {
     if (!item) return null;
-    const base = getCollaborationIntel(item);
-    // Override mock values with real DB fields where available
-    const realStage         = resolveRealStage(item);
-    const realPriority      = item.dbPriority    ? PRIORITY_MAP[item.dbPriority]      : null;
-    const realPaymentStatus = item.dbPaymentStatus ? PAYMENT_STATUS_MAP[item.dbPaymentStatus] : null;
     return {
-      ...base,
-      ...(realStage         ? { stage: realStage }               : {}),
-      ...(realPriority      ? { priority: realPriority }         : {}),
-      ...(realPaymentStatus ? { paymentStatus: realPaymentStatus } : {}),
+      stage:         resolveRealStage(item) ?? 'Inquiry',
+      priority:      item.dbPriority       ? PRIORITY_MAP[item.dbPriority]           : 'Medium',
+      paymentStatus: item.dbPaymentStatus  ? PAYMENT_STATUS_MAP[item.dbPaymentStatus] : 'Pending',
     };
   }, [item]);
-  const timeline = useMemo(() => (item ? getCollaborationTimeline(item) : []), [item]);
-  const deliverables = useMemo(() => (item ? getDeliverables(item) : []), [item]);
-  const contract = useMemo(() => (item ? getContract(item) : null), [item]);
-  const payment = useMemo(() => (item && intel ? getPaymentBreakdown(item, intel) : null), [item, intel]);
-  const performance = useMemo(() => (item ? getPerformanceMetrics(item) : null), [item]);
-  const aiInsights = useMemo(() => (item && intel && performance ? getCollaborationAIInsights(item, intel, performance) : []), [item, intel, performance]);
-  const messages = useMemo(() => (item ? getMessages(item) : []), [item]);
-  const activity = useMemo(() => (item && intel ? getActivityFeed(item, intel) : []), [item, intel]);
-  const documents = useMemo(() => (item ? getDocuments(item) : []), [item]);
 
   if (!item || !intel) return null;
 
@@ -93,15 +74,15 @@ export default function CollabDrawer({ item, isOpen, onClose }) {
 
         {/* Tab content */}
         <div className="p-5 flex-1 overflow-y-auto">
-          {activeTab === 'overview' && <OverviewTab item={item} intel={intel} aiInsights={aiInsights} />}
-          {activeTab === 'timeline' && <TimelineTab timeline={timeline} />}
-          {activeTab === 'deliverables' && <DeliverablesTab deliverables={deliverables} />}
-          {activeTab === 'messages' && <MessagesTab item={item} messages={messages} activity={activity} />}
-          {activeTab === 'payments' && <PaymentsTab payment={payment} intel={intel} />}
-          {activeTab === 'analytics' && <AnalyticsTab performance={performance} />}
-          {activeTab === 'documents' && <DocumentsTab documents={documents} />}
-          {activeTab === 'contract' && <ContractTab contract={contract} />}
-          {activeTab === 'copilot' && <CopilotTab item={item} intel={intel} deliverables={deliverables} performance={performance} aiInsights={aiInsights} />}
+          {activeTab === 'overview' && <OverviewTab item={item} intel={intel} />}
+          {activeTab === 'timeline' && <TimelineTab />}
+          {activeTab === 'deliverables' && <DeliverablesTab collaborationId={item.id} requirements={item.requirements} />}
+          {activeTab === 'messages' && <MessagesTab item={item} />}
+          {activeTab === 'payments' && <PaymentsTab intel={intel} />}
+          {activeTab === 'analytics' && <AnalyticsTab />}
+          {activeTab === 'documents' && <DocumentsTab />}
+          {activeTab === 'contract' && <ContractTab />}
+          {activeTab === 'copilot' && <CopilotTab item={item} />}
         </div>
       </div>
     </Drawer>

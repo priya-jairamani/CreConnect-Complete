@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const ctrl = require('../controllers/campaigns.controller');
+const deliverablesCtrl = require('../controllers/deliverables.controller');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
 
@@ -231,5 +232,67 @@ router.patch('/applications/:appId/:action', authenticate, authorize('BRAND'),  
 router.delete('/applications/:appId/withdraw', authenticate, authorize('CREATOR'), ctrl.withdrawApplication);
 router.post('/:id/invite', authenticate, authorize('BRAND'), ctrl.inviteCreator);
 router.patch('/applications/:appId/respond/:action', authenticate, authorize('CREATOR'), ctrl.creatorRespondToInvitation);
+
+/**
+ * @swagger
+ * /campaigns/collaborations/{collabId}/deliverables:
+ *   get:
+ *     summary: List deliverables for a collaboration (creator or brand, must be part of it)
+ *     tags: [Campaigns]
+ *     parameters:
+ *       - in: path
+ *         name: collabId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200: { description: Deliverables list }
+ *   post:
+ *     summary: Submit a deliverable for a collaboration (CREATOR only)
+ *     tags: [Campaigns]
+ *     parameters:
+ *       - in: path
+ *         name: collabId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note: { type: string }
+ *               link: { type: string }
+ *     responses:
+ *       201: { description: Deliverable submitted }
+ */
+router.get('/collaborations/:collabId/deliverables',  authenticate, deliverablesCtrl.list);
+router.post('/collaborations/:collabId/deliverables', authenticate, authorize('CREATOR'), deliverablesCtrl.submit);
+
+/**
+ * @swagger
+ * /campaigns/deliverables/{deliverableId}/{action}:
+ *   patch:
+ *     summary: Approve or request revision on a submitted deliverable (BRAND only)
+ *     tags: [Campaigns]
+ *     parameters:
+ *       - in: path
+ *         name: deliverableId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: action
+ *         required: true
+ *         schema: { type: string, enum: [approve, request-revision] }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               feedback: { type: string }
+ *     responses:
+ *       200: { description: Deliverable reviewed }
+ */
+router.patch('/deliverables/:deliverableId/:action', authenticate, authorize('BRAND'), deliverablesCtrl.respond);
 
 module.exports = router;

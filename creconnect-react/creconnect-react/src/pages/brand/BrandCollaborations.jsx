@@ -7,10 +7,25 @@ import { ROUTES } from '@/constants/routes';
 import Avatar from '@/components/common/Avatar';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
+import Modal from '@/components/common/Modal';
 import Skeleton from '@/components/common/Skeleton';
 import EmptyState from '@/components/common/EmptyState';
 import StatCard from '@/components/common/StatCard';
 import { formatPKR } from '@/utils/formatters';
+
+const DELIVERABLE_STATUS_META = {
+  SUBMITTED:          { label: 'Submitted',      variant: 'warning' },
+  APPROVED:           { label: 'Approved',       variant: 'success' },
+  REVISION_REQUESTED: { label: 'Needs Revision', variant: 'danger'  },
+};
+
+const DELIVERABLE_TYPE_META = {
+  REEL:       { label: 'Reel',       icon: '🎥' },
+  POST:       { label: 'Post',       icon: '🖼️' },
+  STORY:      { label: 'Story',      icon: '📱' },
+  VIDEO:      { label: 'Video',      icon: '🎬' },
+  LIVESTREAM: { label: 'Livestream', icon: '📡' },
+};
 
 /* ─── Stage / status meta ─────────────────────────────────────────── */
 
@@ -92,7 +107,7 @@ function ApplicationRow({ app, onRespond }) {
   );
 }
 
-function CollabRow({ collab, onMessage }) {
+function CollabRow({ collab, onMessage, onReview }) {
   const creator  = collab.creator  ?? {};
   const campaign = collab.campaign ?? {};
   const platform = creator.platforms?.[0];
@@ -129,7 +144,10 @@ function CollabRow({ collab, onMessage }) {
         <p className="text-fg text-xs font-semibold">{formatPKR(collab.offerAmountPKR || campaign.budgetPKR || 0)}</p>
         <p className="text-fg-muted text-[10px]">{collab.paymentStatus || 'PENDING'}</p>
       </div>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 flex items-center gap-2">
+        <Button variant="secondary" size="xs" onClick={() => onReview(collab)}>
+          📋 Review
+        </Button>
         <Button variant="secondary" size="xs" onClick={() => onMessage(creator.userId)}>
           💬 Message
         </Button>
@@ -294,6 +312,12 @@ export default function BrandCollaborations() {
   const [isLoadingApps,    setIsLoadingApps]    = useState(true);
   const [error,            setError]            = useState(null);
   const [activeTab,        setActiveTab]        = useState('requests');
+  const [reviewCollab,      setReviewCollab]      = useState(null);
+  const [deliverables,      setDeliverables]      = useState([]);
+  const [loadingDeliverables, setLoadingDeliverables] = useState(false);
+  const [respondingId,     setRespondingId]      = useState(null);
+  const [revisionDraftId,  setRevisionDraftId]   = useState(null);
+  const [revisionNote,     setRevisionNote]      = useState('');
 
   const loadCollabs = useCallback(async () => {
     setIsLoadingCollabs(true);
@@ -335,6 +359,51 @@ export default function BrandCollaborations() {
   const handleMessage = useCallback((userId) => {
     navigate(ROUTES.BRAND_MESSAGES + (userId ? `?userId=${userId}` : ''));
   }, [navigate]);
+
+  const loadDeliverables = useCallback(async (collabId) => {
+    setLoadingDeliverables(true);
+    try {
+      const { data } = await campaignsApi.getDeliverables(collabId);
+      setDeliverables(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to load deliverables');
+    } finally {
+      setLoadingDeliverables(false);
+    }
+  }, [toast]);
+
+  const handleReview = useCallback((collab) => {
+    setReviewCollab(collab);
+    loadDeliverables(collab.id);
+  }, [loadDeliverables]);
+
+  const handleApprove = useCallback(async (deliverableId) => {
+    setRespondingId(deliverableId);
+    try {
+      await campaignsApi.respondToDeliverable(deliverableId, 'approve');
+      toast.success('Deliverable approved');
+      await Promise.all([loadDeliverables(reviewCollab.id), loadCollabs()]);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to approve deliverable');
+    } finally {
+      setRespondingId(null);
+    }
+  }, [reviewCollab, loadDeliverables, loadCollabs, toast]);
+
+  const handleRequestRevision = useCallback(async (deliverableId) => {
+    setRespondingId(deliverableId);
+    try {
+      await campaignsApi.respondToDeliverable(deliverableId, 'request-revision', revisionNote);
+      toast.success('Revision requested');
+      setRevisionDraftId(null);
+      setRevisionNote('');
+      await loadDeliverables(reviewCollab.id);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to request revision');
+    } finally {
+      setRespondingId(null);
+    }
+  }, [reviewCollab, revisionNote, loadDeliverables, toast]);
 
   const active    = useMemo(() => collaborations.filter((c) => c.status === 'ACCEPTED'),   [collaborations]);
   const completed = useMemo(() => collaborations.filter((c) => c.status === 'COMPLETED'),  [collaborations]);
@@ -463,7 +532,7 @@ export default function BrandCollaborations() {
                   { label: 'Budget', cls: 'hidden md:block w-24 text-right' },
                   { label: 'Action', cls: 'w-24 text-right' },
                 ]} />
-                {active.map((c) => <CollabRow key={c.id} collab={c} onMessage={handleMessage} />)}
+                {active.map((c) => <CollabRow key={c.id} collab={c} onMessage={handleMessage} onReview={handleReview} />)}
               </div>
             )
           )}
@@ -483,7 +552,7 @@ export default function BrandCollaborations() {
                   { label: 'Budget', cls: 'hidden md:block w-24 text-right' },
                   { label: 'Action', cls: 'w-24 text-right' },
                 ]} />
-                {completed.map((c) => <CollabRow key={c.id} collab={c} onMessage={handleMessage} />)}
+                {completed.map((c) => <CollabRow key={c.id} collab={c} onMessage={handleMessage} onReview={handleReview} />)}
               </div>
             )
           )}
@@ -499,6 +568,77 @@ export default function BrandCollaborations() {
           )}
         </>
       )}
+
+      <Modal
+        isOpen={!!reviewCollab}
+        onClose={() => setReviewCollab(null)}
+        title="Deliverables"
+        description={reviewCollab ? `${reviewCollab.creator?.displayName || reviewCollab.creator?.username || 'Creator'} — ${reviewCollab.campaign?.title || 'Campaign'}` : ''}
+        size="md"
+      >
+        {loadingDeliverables ? (
+          <div className="space-y-3">
+            {[1, 2].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}
+          </div>
+        ) : deliverables.length === 0 ? (
+          <p className="text-fg-muted text-sm py-6 text-center">No deliverables submitted yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {deliverables.map((d) => {
+              const meta = DELIVERABLE_STATUS_META[d.status] ?? DELIVERABLE_STATUS_META.SUBMITTED;
+              const isBusy = respondingId === d.id;
+              return (
+                <div key={d.id} className="rounded-2xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {d.type && <p className="text-fg-muted text-[10px] font-semibold uppercase tracking-wide">{DELIVERABLE_TYPE_META[d.type]?.icon} {DELIVERABLE_TYPE_META[d.type]?.label ?? d.type}</p>}
+                      <p className="text-fg text-sm">{d.note}</p>
+                    </div>
+                    <Badge variant={meta.variant} label={meta.label} />
+                  </div>
+                  {d.link && (
+                    <a href={d.link} target="_blank" rel="noreferrer" className="text-brand-400 text-xs underline mt-2 inline-block break-all">
+                      {d.link}
+                    </a>
+                  )}
+                  {d.feedback && (
+                    <div className="mt-3 rounded-xl p-3 text-sm flex items-start gap-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                      <span className="flex-shrink-0">💬</span>
+                      <p className="text-fg-muted">{d.feedback}</p>
+                    </div>
+                  )}
+
+                  {d.status === 'SUBMITTED' && (
+                    <div className="mt-3 space-y-2">
+                      {revisionDraftId === d.id ? (
+                        <>
+                          <textarea
+                            className="w-full rounded-xl p-2.5 text-sm"
+                            style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--fg)' }}
+                            rows={2}
+                            placeholder="What needs to change?"
+                            value={revisionNote}
+                            onChange={(e) => setRevisionNote(e.target.value)}
+                          />
+                          <div className="flex gap-2">
+                            <Button variant="secondary" size="xs" onClick={() => { setRevisionDraftId(null); setRevisionNote(''); }}>Cancel</Button>
+                            <Button variant="primary" size="xs" isLoading={isBusy} disabled={isBusy} onClick={() => handleRequestRevision(d.id)}>Send</Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button variant="primary" size="xs" isLoading={isBusy} disabled={isBusy} onClick={() => handleApprove(d.id)}>✓ Approve</Button>
+                          <Button variant="secondary" size="xs" disabled={isBusy} onClick={() => setRevisionDraftId(d.id)}>✏️ Request Revision</Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

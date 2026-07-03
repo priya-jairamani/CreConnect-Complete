@@ -101,7 +101,7 @@ async function getMyCollaborations(userId, query) {
     limit,
     order: [['createdAt', 'DESC']],
     include: [
-      { model: Campaign,     as: 'campaign', attributes: ['title', 'objective'] },
+      { model: Campaign,     as: 'campaign', attributes: ['title', 'objective', 'contentType', 'reels', 'posts', 'stories', 'videos', 'livestreams'] },
       { model: BrandProfile, as: 'brand',    attributes: ['userId', 'companyName', 'logoUrl'] },
     ],
   });

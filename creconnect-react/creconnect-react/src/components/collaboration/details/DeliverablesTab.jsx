@@ -1,107 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Badge from '@/components/common/Badge';
-import { APPROVAL_STATUS_VARIANT } from '@/constants/collaborationOptions';
+import Button from '@/components/common/Button';
+import Modal from '@/components/common/Modal';
+import Skeleton from '@/components/common/Skeleton';
+import { campaignsApi } from '@/api/campaigns.api';
+import { useToast } from '@/hooks/useToast';
 
-const TYPE_ICONS = {
-  Reel: '🎥', Story: '📱', Post: '🖼️', Video: '🎬', Livestream: '📡', 'UGC Content': '✂️',
+const STATUS_META = {
+  SUBMITTED:           { label: 'Submitted',      variant: 'warning' },
+  APPROVED:            { label: 'Approved',       variant: 'success' },
+  REVISION_REQUESTED:  { label: 'Needs Revision', variant: 'danger'  },
 };
 
-function DeliverableCard({ deliverable }) {
-  const [showHistory, setShowHistory] = useState(false);
+const TYPE_META = {
+  REEL:       { label: 'Reel',       icon: '🎥' },
+  POST:       { label: 'Post',       icon: '🖼️' },
+  STORY:      { label: 'Story',      icon: '📱' },
+  VIDEO:      { label: 'Video',      icon: '🎬' },
+  LIVESTREAM: { label: 'Livestream', icon: '📡' },
+};
 
-  return (
-    <div className="rounded-2xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-            {TYPE_ICONS[deliverable.type] ?? '📄'}
-          </span>
-          <div className="min-w-0">
-            <p className="text-fg font-semibold text-sm">{deliverable.title}</p>
-            <p className="text-fg-muted text-xs mt-0.5">{deliverable.type} · Due {new Date(deliverable.dueDate).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' })}</p>
-          </div>
-        </div>
-        <Badge variant={APPROVAL_STATUS_VARIANT[deliverable.approvalStatus] ?? 'neutral'} label={deliverable.approvalStatus} />
-      </div>
+export default function DeliverablesTab({ collaborationId, requirements }) {
+  const toast = useToast();
+  const [deliverables, setDeliverables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showSubmit, setShowSubmit] = useState(false);
+  const [type, setType] = useState('');
+  const [note, setNote] = useState('');
+  const [link, setLink] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
-        <div className="rounded-lg p-2 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <p className="text-fg-muted text-[10px]">Status</p>
-          <p className="text-fg font-medium mt-0.5">{deliverable.status}</p>
-        </div>
-        <div className="rounded-lg p-2 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <p className="text-fg-muted text-[10px]">Submitted</p>
-          <p className="text-fg font-medium mt-0.5">{deliverable.submissionDate ? new Date(deliverable.submissionDate).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' }) : '—'}</p>
-        </div>
-        <div className="rounded-lg p-2 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <p className="text-fg-muted text-[10px]">Revisions</p>
-          <p className="text-fg font-medium mt-0.5">{deliverable.revisionCount}</p>
-        </div>
-        <div className="rounded-lg p-2 text-center" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <p className="text-fg-muted text-[10px]">Due</p>
-          <p className="text-fg font-medium mt-0.5">{new Date(deliverable.dueDate).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' })}</p>
-        </div>
-      </div>
-
-      {deliverable.feedback && (
-        <div className="mt-3 rounded-xl p-3 text-sm flex items-start gap-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <span className="flex-shrink-0">💬</span>
-          <p className="text-fg-muted">{deliverable.feedback}</p>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 mt-3">
-        {deliverable.approvalStatus === 'Draft' && (
-          <button className="px-3 py-1.5 rounded-lg text-xs font-medium text-brand-400 border border-brand-500/30 hover:bg-brand-500/10 transition-colors">
-            📤 Submit for Review
-          </button>
-        )}
-        {deliverable.approvalStatus === 'Needs Revision' && (
-          <button className="px-3 py-1.5 rounded-lg text-xs font-medium text-warning border border-warning/30 hover:bg-warning/10 transition-colors">
-            ✏️ Submit Revision
-          </button>
-        )}
-        {deliverable.revisionCount > 0 && (
-          <button onClick={() => setShowHistory((v) => !v)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-fg-muted border hover:text-fg transition-colors" style={{ borderColor: 'var(--border)' }}>
-            {showHistory ? 'Hide' : 'Show'} Revision History
-          </button>
-        )}
-      </div>
-
-      {showHistory && (
-        <div className="mt-3 space-y-2 pl-3 border-l-2" style={{ borderColor: 'var(--border)' }}>
-          {Array.from({ length: deliverable.revisionCount }, (_, i) => (
-            <p key={i} className="text-fg-muted text-xs">Revision {i + 1}: requested changes — see feedback above.</p>
-          ))}
-        </div>
-      )}
-    </div>
+  // Only offer content types the campaign actually asked for
+  const availableTypes = useMemo(
+    () => Object.entries(requirements ?? {}).filter(([, count]) => count > 0).map(([t]) => t),
+    [requirements]
   );
-}
 
-DeliverableCard.propTypes = { deliverable: PropTypes.object.isRequired };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await campaignsApi.getDeliverables(collaborationId);
+      setDeliverables(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error('Failed to load deliverables');
+    } finally {
+      setLoading(false);
+    }
+  }, [collaborationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-export default function DeliverablesTab({ deliverables }) {
-  const counts = deliverables.reduce((acc, d) => {
-    acc[d.approvalStatus] = (acc[d.approvalStatus] ?? 0) + 1;
-    return acc;
-  }, {});
+  useEffect(() => { load(); }, [load]);
+
+  const openSubmit = () => {
+    setType(availableTypes[0] ?? '');
+    setShowSubmit(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!note.trim()) { toast.error('Please add a short note describing your submission'); return; }
+    setSubmitting(true);
+    try {
+      await campaignsApi.submitDeliverable(collaborationId, { type: type || undefined, note, link: link || undefined });
+      toast.success('Deliverable submitted for review');
+      setShowSubmit(false);
+      setNote('');
+      setLink('');
+      await load();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to submit deliverable');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(counts).map(([status, count]) => (
-          <Badge key={status} variant={APPROVAL_STATUS_VARIANT[status] ?? 'neutral'} label={`${count} ${status}`} />
-        ))}
+      <div className="flex justify-end">
+        <Button variant="primary" size="xs" onClick={openSubmit}>📤 Submit for Review</Button>
       </div>
-      <div className="space-y-3">
-        {deliverables.map((d) => <DeliverableCard key={d.id} deliverable={d} />)}
-      </div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}
+        </div>
+      ) : deliverables.length === 0 ? (
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--surface-2)' }}>
+          <p className="text-fg-muted text-sm">No deliverables submitted yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {deliverables.map((d) => {
+            const meta = STATUS_META[d.status] ?? STATUS_META.SUBMITTED;
+            const typeMeta = TYPE_META[d.type];
+            return (
+              <div key={d.id} className="rounded-2xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2 flex-1 min-w-0">
+                    {typeMeta && (
+                      <span className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                        {typeMeta.icon}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      {typeMeta && <p className="text-fg-muted text-[10px] font-semibold uppercase tracking-wide">{typeMeta.label}</p>}
+                      <p className="text-fg text-sm">{d.note}</p>
+                    </div>
+                  </div>
+                  <Badge variant={meta.variant} label={meta.label} />
+                </div>
+                {d.link && (
+                  <a href={d.link} target="_blank" rel="noreferrer" className="text-brand-400 text-xs underline mt-2 inline-block break-all">
+                    {d.link}
+                  </a>
+                )}
+                {d.feedback && (
+                  <div className="mt-3 rounded-xl p-3 text-sm flex items-start gap-2" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <span className="flex-shrink-0">💬</span>
+                    <p className="text-fg-muted">{d.feedback}</p>
+                  </div>
+                )}
+                <p className="text-fg-muted text-[10px] mt-2">
+                  {new Date(d.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal
+        isOpen={showSubmit}
+        onClose={() => setShowSubmit(false)}
+        title="Submit deliverable"
+        description="Pick what you're submitting and describe the work, with a link to the posted content if applicable."
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowSubmit(false)}>Cancel</Button>
+            <Button variant="primary" size="sm" isLoading={submitting} disabled={submitting} onClick={handleSubmit}>Submit</Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          {availableTypes.length > 0 && (
+            <select
+              className="w-full rounded-xl p-2.5 text-sm"
+              style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--fg)' }}
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {availableTypes.map((t) => (
+                <option key={t} value={t}>{TYPE_META[t]?.icon} {TYPE_META[t]?.label}</option>
+              ))}
+            </select>
+          )}
+          <textarea
+            className="w-full rounded-xl p-3 text-sm"
+            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--fg)' }}
+            rows={4}
+            placeholder="What did you deliver?"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <input
+            className="w-full rounded-xl p-2.5 text-sm"
+            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--fg)' }}
+            placeholder="Link (optional) — e.g. posted content URL"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
 
 DeliverablesTab.propTypes = {
-  deliverables: PropTypes.arrayOf(PropTypes.object).isRequired,
+  collaborationId: PropTypes.string.isRequired,
+  requirements: PropTypes.object,
 };
