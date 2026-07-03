@@ -4,6 +4,7 @@ import { brandsApi } from '@/api/brands.api';
 import { paymentsApi } from '@/api/payments.api';
 import Avatar from '@/components/common/Avatar';
 import Button from '@/components/common/Button';
+import Modal from '@/components/common/Modal';
 import Skeleton from '@/components/common/Skeleton';
 import StatCard from '@/components/common/StatCard';
 import { formatPKR } from '@/utils/formatters';
@@ -35,6 +36,7 @@ export default function BrandPayments() {
   const [payments, setPayments] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [busy,     setBusy]     = useState({});
+  const [confirmRelease, setConfirmRelease] = useState(null); // { paymentId, collabId, amount, creatorName } | null
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,7 +91,6 @@ export default function BrandPayments() {
   }, [load, toast]);
 
   const handleRelease = useCallback(async (paymentId, collabId) => {
-    if (!window.confirm('Release payment to the creator? This cannot be undone.')) return;
     setBusy(p => ({ ...p, [collabId]: true }));
     try {
       await paymentsApi.releasePayment(paymentId);
@@ -101,6 +102,13 @@ export default function BrandPayments() {
       setBusy(p => ({ ...p, [collabId]: false }));
     }
   }, [load, toast]);
+
+  const confirmAndRelease = useCallback(async () => {
+    if (!confirmRelease) return;
+    const { paymentId, collabId } = confirmRelease;
+    setConfirmRelease(null);
+    await handleRelease(paymentId, collabId);
+  }, [confirmRelease, handleRelease]);
 
   /* KPI summary */
   const kpis = useMemo(() => {
@@ -246,7 +254,12 @@ export default function BrandPayments() {
                       size="xs"
                       disabled={isBusy}
                       isLoading={isBusy}
-                      onClick={() => handleRelease(payment.id, collab.id)}
+                      onClick={() => setConfirmRelease({
+                        paymentId: payment.id,
+                        collabId: collab.id,
+                        amount,
+                        creatorName: creator.displayName || creator.username || 'this creator',
+                      })}
                     >
                       💸 Release
                     </Button>
@@ -260,6 +273,31 @@ export default function BrandPayments() {
           })
         )}
       </div>
+
+      <Modal
+        isOpen={!!confirmRelease}
+        onClose={() => setConfirmRelease(null)}
+        title="Release payment?"
+        description="This sends the escrowed funds to the creator and cannot be undone."
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setConfirmRelease(null)}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={confirmAndRelease}>
+              💸 Release {confirmRelease ? formatPKR(confirmRelease.amount) : ''}
+            </Button>
+          </div>
+        }
+      >
+        {confirmRelease && (
+          <p className="text-fg-muted text-sm">
+            Release <span className="text-fg font-semibold">{formatPKR(confirmRelease.amount)}</span> to{' '}
+            <span className="text-fg font-semibold">{confirmRelease.creatorName}</span>?
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

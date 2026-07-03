@@ -13,6 +13,14 @@ const getStats = async (req, res, next) => {
   try { ok(res, await svc.getStats(req.user.id)); } catch (e) { next(e); }
 };
 
+const startPayoutOnboarding = async (req, res, next) => {
+  try { ok(res, await svc.startPayoutOnboarding(req.user.id)); } catch (e) { next(e); }
+};
+
+const refreshPayoutStatus = async (req, res, next) => {
+  try { ok(res, await svc.refreshPayoutStatus(req.user.id)); } catch (e) { next(e); }
+};
+
 const getCollaborations = async (req, res, next) => {
   try {
     const { items, total, page, limit } = await svc.getMyCollaborations(req.user.id, req.query);
@@ -70,4 +78,4 @@ const getPublicMedia = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };
+module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, refreshPayoutStatus };

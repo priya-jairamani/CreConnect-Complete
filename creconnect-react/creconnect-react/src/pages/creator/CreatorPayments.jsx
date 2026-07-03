@@ -4,6 +4,7 @@ import { paymentsApi } from '@/api/payments.api';
 import { creatorsApi } from '@/api/creators.api';
 import Skeleton from '@/components/common/Skeleton';
 import StatCard from '@/components/common/StatCard';
+import Button from '@/components/common/Button';
 import { formatPKR } from '@/utils/formatters';
 
 const STATUS_STEPS = ['PENDING', 'ESCROW', 'RELEASED'];
@@ -56,18 +57,23 @@ export default function CreatorPayments() {
   const [payments, setPayments] = useState([]);
   const [collabs,  setCollabs]  = useState([]);
   const [loading,  setLoading]  = useState(true);
+  const [payoutsEnabled, setPayoutsEnabled] = useState(true); // assume true until profile loads, to avoid a flash of the banner
+  const [onboarding, setOnboarding] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [payRes, collabRes] = await Promise.all([
+      const [payRes, collabRes, profileRes] = await Promise.all([
         paymentsApi.getHistory(),
         creatorsApi.getCollaborations({}),
+        creatorsApi.getProfile(),
       ]);
       const payList    = Array.isArray(payRes.data)    ? payRes.data    : (payRes.data?.data    ?? []);
       const collabList = Array.isArray(collabRes.data) ? collabRes.data : (collabRes.data?.data ?? []);
       setPayments(payList);
       setCollabs(collabList.filter(c => c.status === 'ACCEPTED' || c.rawStatus === 'ACCEPTED'));
+      setPayoutsEnabled(!!profileRes.data?.payoutsEnabled);
     } catch {
       toast.error('Failed to load payments');
     } finally {
@@ -76,6 +82,48 @@ export default function CreatorPayments() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
+
+  // Returning from Stripe Connect onboarding — check status directly with Stripe
+  // rather than waiting on a webhook, which can be delayed or, for some accounts,
+  // delivered as a newer event type this backend doesn't listen for.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payouts = params.get('payouts');
+    if (!payouts) return;
+    window.history.replaceState({}, '', window.location.pathname);
+
+    if (payouts === 'onboarded') {
+      toast.success('Payout setup complete — checking status…');
+      creatorsApi.refreshPayoutStatus().catch(() => {}).finally(load);
+    } else {
+      load();
+    }
+  }, [load, toast]);
+
+  const handleRecheckPayouts = useCallback(async () => {
+    setCheckingStatus(true);
+    try {
+      await creatorsApi.refreshPayoutStatus();
+      await load();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to check payout status');
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [load, toast]);
+
+  const handleSetupPayouts = useCallback(async () => {
+    setOnboarding(true);
+    try {
+      const res = await creatorsApi.startPayoutOnboarding();
+      const url = res.data?.url;
+      if (!url) throw new Error('No onboarding URL returned');
+      window.location.href = url;
+    } catch (err) {
+      toast.error(err?.message || 'Failed to start payout setup');
+      setOnboarding(false);
+    }
+  }, [toast]);
 
   const kpis = useMemo(() => {
     const earned   = payments
@@ -99,6 +147,28 @@ export default function CreatorPayments() {
         <h1 className="text-2xl font-bold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>Payments</h1>
         <p className="text-fg-muted text-sm mt-0.5">Track what you've earned and what's secured in escrow.</p>
       </header>
+
+      {!loading && !payoutsEnabled && (
+        <div
+          className="rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap"
+          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}
+        >
+          <div>
+            <p className="text-sm font-semibold text-fg">⚠ Set up payouts to get paid</p>
+            <p className="text-fg-muted text-xs mt-0.5">
+              Brands can still lock escrow, but released payments can't reach you until you connect a payout account.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button variant="secondary" size="sm" isLoading={checkingStatus} disabled={checkingStatus} onClick={handleRecheckPayouts}>
+              Recheck status
+            </Button>
+            <Button variant="primary" size="sm" isLoading={onboarding} disabled={onboarding} onClick={handleSetupPayouts}>
+              Set up payouts
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -31,6 +31,13 @@ function errorHandler(err, req, res, _next) {
     return res.status(400).json({ success: false, message: 'Related resource not found' });
   }
 
+  // Stripe API errors (e.g. insufficient available balance for a transfer) — Stripe's
+  // own messages are written to be shown to users, so surface them instead of a generic 500
+  if (typeof err.type === 'string' && err.type.startsWith('Stripe')) {
+    logger.error(err);
+    return res.status(err.statusCode || 402).json({ success: false, message: err.message });
+  }
+
   logger.error(err);
   res.status(500).json({ success: false, message: 'Internal server error' });
 }

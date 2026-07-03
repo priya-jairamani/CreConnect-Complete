@@ -1,4 +1,5 @@
 const svc = require('../services/payments.service');
+const creatorsSvc = require('../services/creators.service');
 const stripe = require('../config/stripe');
 const { STRIPE_WEBHOOK_SECRET } = require('../config/env');
 const { ok, created, paginated } = require('../utils/response');
@@ -23,6 +24,14 @@ const handleWebhook = async (req, res) => {
     } catch (err) {
       console.error('[Webhook] confirmEscrow failed:', err.message);
       // Return 200 so Stripe does not keep retrying — log for manual review
+    }
+  }
+
+  if (event.type === 'account.updated') {
+    try {
+      await creatorsSvc.syncPayoutStatus(event.data.object);
+    } catch (err) {
+      console.error('[Webhook] syncPayoutStatus failed:', err.message);
     }
   }
 

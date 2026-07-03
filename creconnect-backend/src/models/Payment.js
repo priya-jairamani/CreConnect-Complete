@@ -7,8 +7,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('PENDING','ESCROW','RELEASED','PAID'),
       defaultValue: 'PENDING',
     },
-    stripePaymentId: { type: DataTypes.STRING },
-    releasedAt:      { type: DataTypes.DATE },
+    stripePaymentId:  { type: DataTypes.STRING },
+    stripeTransferId: { type: DataTypes.STRING },
+    releasedAt:       { type: DataTypes.DATE },
   }, { tableName: 'payments', timestamps: true });
 
   Payment.associate = (models) => {

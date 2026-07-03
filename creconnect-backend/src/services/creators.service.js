@@ -1,6 +1,8 @@
 const { CreatorProfile, SocialPlatform, Collaboration, Application, User, Campaign, BrandProfile, CreatorMedia } = require('../models');
 const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
+const stripe = require('../config/stripe');
+const { FRONTEND_URL } = require('../config/env');
 
 const CREATOR_INCLUDE = [
   { model: User,           as: 'user',      attributes: ['id', 'email', 'status', 'createdAt'] },
@@ -18,6 +20,53 @@ async function updateMyProfile(userId, data) {
   if (!profile) throw new NotFoundError('Creator profile not found');
   await profile.update(data);
   return profile.reload({ include: CREATOR_INCLUDE });
+}
+
+// Creates (if needed) a Stripe Connect Express account for this creator and
+// returns a fresh onboarding link — Stripe hosts identity/bank verification.
+async function startPayoutOnboarding(userId) {
+  const profile = await CreatorProfile.findOne({ where: { userId }, include: [{ model: User, as: 'user' }] });
+  if (!profile) throw new NotFoundError('Creator profile not found');
+
+  let accountId = profile.stripeConnectAccountId;
+  if (!accountId) {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      email: profile.user?.email,
+      capabilities: { transfers: { requested: true } },
+    });
+    accountId = account.id;
+    await profile.update({ stripeConnectAccountId: accountId });
+  }
+
+  const accountLink = await stripe.accountLinks.create({
+    account: accountId,
+    refresh_url: `${FRONTEND_URL}/creator/payments?payouts=refresh`,
+    return_url: `${FRONTEND_URL}/creator/payments?payouts=onboarded`,
+    type: 'account_onboarding',
+  });
+
+  return { url: accountLink.url };
+}
+
+// Called from the Stripe webhook (account.updated) to keep payoutsEnabled in sync
+async function syncPayoutStatus(account) {
+  const profile = await CreatorProfile.findOne({ where: { stripeConnectAccountId: account.id } });
+  if (!profile) return;
+  await profile.update({ payoutsEnabled: !!account.payouts_enabled });
+}
+
+// Called when the creator returns from Stripe onboarding — checks status directly
+// rather than waiting on a webhook (which may be delayed or, for accounts on newer
+// Stripe API versions, delivered as a v2 event this endpoint doesn't listen for).
+async function refreshPayoutStatus(userId) {
+  const profile = await CreatorProfile.findOne({ where: { userId } });
+  if (!profile) throw new NotFoundError('Creator profile not found');
+  if (!profile.stripeConnectAccountId) return profile;
+
+  const account = await stripe.accounts.retrieve(profile.stripeConnectAccountId);
+  await profile.update({ payoutsEnabled: !!account.payouts_enabled });
+  return profile;
 }
 
 async function getStats(userId) {
@@ -99,6 +148,7 @@ async function removePlatform(userId, platformId) {
 async function getPublicProfile(username) {
   const profile = await CreatorProfile.findOne({
     where: { username },
+    attributes: { exclude: ['stripeConnectAccountId'] },
     include: [...CREATOR_INCLUDE],
   });
   if (!profile) throw new NotFoundError('Creator not found');
@@ -169,4 +219,4 @@ async function reorderMedia(userId, orderedIds) {
   );
 }
 
-module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia };
+module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, syncPayoutStatus, refreshPayoutStatus };

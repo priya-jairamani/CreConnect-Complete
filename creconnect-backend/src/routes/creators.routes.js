@@ -86,6 +86,42 @@ router.get('/me/stats', authenticate, authorize('CREATOR'), ctrl.getStats);
 
 /**
  * @swagger
+ * /creators/me/payouts/onboard:
+ *   post:
+ *     summary: Start (or resume) Stripe Connect Express onboarding for payouts
+ *     tags: [Creators]
+ *     responses:
+ *       200:
+ *         description: Onboarding link
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url: { type: string }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/me/payouts/onboard', authenticate, authorize('CREATOR'), ctrl.startPayoutOnboarding);
+
+/**
+ * @swagger
+ * /creators/me/payouts/refresh:
+ *   post:
+ *     summary: Re-check payout onboarding status directly with Stripe
+ *     tags: [Creators]
+ *     responses:
+ *       200:
+ *         description: Updated creator profile
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/me/payouts/refresh', authenticate, authorize('CREATOR'), ctrl.refreshPayoutStatus);
+
+/**
+ * @swagger
  * /creators/me/collaborations:
  *   get:
  *     summary: List the logged-in creator's collaborations (paginated)

@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Payment, Collaboration, BrandProfile, CreatorProfile, Campaign } = require('../models');
+const { sequelize, Payment, Collaboration, BrandProfile, CreatorProfile, Campaign } = require('../models');
 const { NotFoundError, ForbiddenError, ValidationError, ConflictError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const notificationsSvc = require('./notifications.service');
@@ -109,10 +109,38 @@ async function releasePayment(paymentId, userId) {
   if (payment.collaboration.brand.userId !== userId) throw new ForbiddenError();
   if (payment.status !== 'ESCROW') throw new ConflictError('Payment can only be released when it is in escrow');
 
-  await payment.update({ status: 'RELEASED', releasedAt: new Date() });
+  const payoutCreator = payment.collaboration.creator;
+  if (!payoutCreator?.payoutsEnabled || !payoutCreator?.stripeConnectAccountId) {
+    throw new ConflictError('This creator has not finished setting up payouts yet — ask them to complete payout setup before releasing.');
+  }
 
-  // Mirror status on the collaboration so creator's page reflects it
-  await payment.collaboration.update({ paymentStatus: 'RELEASED' });
+  // NOTE (test-mode workaround, not real FX handling): this platform's Stripe balance
+  // only holds funds in USD — Pakistan isn't a Stripe-supported settlement country, so
+  // PKR-denominated Checkout charges settle into the account's USD balance at Stripe's
+  // own conversion rate, not a PKR one. Transfers draw from the balance in the currency
+  // requested, so this must be USD, and the amount must be converted (not just relabeled)
+  // or every transfer will request ~280x more than is actually available. A real
+  // implementation needs proper FX/multi-currency handling — this is a rough placeholder
+  // rate purely so the payout mechanics can be tested end-to-end.
+  const PLACEHOLDER_PKR_PER_USD = 280;
+  const transfer = await stripe.transfers.create(
+    {
+      amount: Math.round((payment.amountPKR / PLACEHOLDER_PKR_PER_USD) * 100),
+      currency: 'usd',
+      destination: payoutCreator.stripeConnectAccountId,
+    },
+    // Ties this call to this specific payment — if the DB write below fails and the
+    // brand retries release, Stripe returns the original transfer instead of creating
+    // a second one for the same payment.
+    { idempotencyKey: `release-${payment.id}` }
+  );
+
+  // Record the transfer and mirror status onto the collaboration together, so a partial
+  // failure can't leave Payment.status and Collaboration.paymentStatus disagreeing.
+  await sequelize.transaction(async (t) => {
+    await payment.update({ status: 'RELEASED', releasedAt: new Date(), stripeTransferId: transfer.id }, { transaction: t });
+    await payment.collaboration.update({ paymentStatus: 'RELEASED' }, { transaction: t });
+  });
 
   const creator       = payment.collaboration?.creator;
   const brand         = payment.collaboration?.brand;

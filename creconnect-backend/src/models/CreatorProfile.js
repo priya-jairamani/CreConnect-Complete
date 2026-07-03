@@ -54,6 +54,10 @@ module.exports = (sequelize, DataTypes) => {
     collaborationStyle: { type: DataTypes.STRING },
     remoteOnsite:       { type: DataTypes.STRING },
     travelAvailability: { type: DataTypes.STRING },
+
+    // Payouts (Stripe Connect Express)
+    stripeConnectAccountId: { type: DataTypes.STRING },
+    payoutsEnabled:         { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   }, { tableName: 'creator_profiles', timestamps: true });
 
   CreatorProfile.associate = (models) => {
