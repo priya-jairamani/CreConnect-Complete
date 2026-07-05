@@ -40,6 +40,42 @@ function initSocket(httpServer) {
     const userId = socket.user.id;
     socket.join(`user:${userId}`);
     logger.info(`Socket connected: ${userId}`);
+
+    // ── Call signaling (relay-only; server never inspects SDP/candidates) ──
+    // Lives on this namespace (not /chat) because it's connected app-wide as
+    // soon as the user logs in, so a call rings even if Messages isn't open.
+    const relayToUser = (targetUserId, event, payload) => {
+      notifications.to(`user:${targetUserId}`).emit(event, payload);
+    };
+
+    socket.on('call-start', ({ to, callType, conversationId, fromName, fromAvatar }) => {
+      relayToUser(to, 'call-incoming', { from: userId, callType, conversationId, fromName, fromAvatar });
+    });
+
+    socket.on('call-accept', ({ to, conversationId }) => {
+      relayToUser(to, 'call-accepted', { from: userId, conversationId });
+    });
+
+    socket.on('call-reject', ({ to, conversationId }) => {
+      relayToUser(to, 'call-rejected', { from: userId, conversationId });
+    });
+
+    socket.on('call-end', ({ to, conversationId }) => {
+      relayToUser(to, 'call-ended', { from: userId, conversationId });
+    });
+
+    socket.on('call-offer', ({ to, conversationId, sdp }) => {
+      relayToUser(to, 'call-offer', { from: userId, conversationId, sdp });
+    });
+
+    socket.on('call-answer', ({ to, conversationId, sdp }) => {
+      relayToUser(to, 'call-answer', { from: userId, conversationId, sdp });
+    });
+
+    socket.on('call-ice-candidate', ({ to, conversationId, candidate }) => {
+      relayToUser(to, 'call-ice-candidate', { from: userId, conversationId, candidate });
+    });
+
     socket.on('disconnect', () => logger.info(`Socket disconnected: ${userId}`));
   });
 

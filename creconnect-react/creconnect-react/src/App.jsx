@@ -7,6 +7,7 @@ import { CampaignProvider }     from '@/context/CampaignContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider }        from '@/context/ToastContext';
 import { ThemeProvider }        from '@/context/ThemeContext';
+import { CallProvider }         from '@/context/CallContext';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -40,7 +41,9 @@ export default function App() {
             <CampaignProvider>
               <NotificationProvider>
                 <ToastProvider>
-                  <RouterProvider router={router} />
+                  <CallProvider>
+                    <RouterProvider router={router} />
+                  </CallProvider>
                 </ToastProvider>
               </NotificationProvider>
             </CampaignProvider>

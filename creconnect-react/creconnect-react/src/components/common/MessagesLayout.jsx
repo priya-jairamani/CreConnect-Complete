@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import { messagesApi } from '@/api/messages.api';
 import { uploadApi } from '@/api/upload.api';
 import { useAuthContext } from '@/context/AuthContext';
+import { useCallContext } from '@/context/CallContext';
 import { useSocket } from '@/hooks/useSocket';
 import EmojiPicker from '@/components/common/EmojiPicker';
 
@@ -117,121 +118,6 @@ function TypingDots() {
   );
 }
 
-/* ─── Call Overlay ──────────────────────────────────────────────── */
-function CallOverlay({ callType, callState, otherName, otherAvatar, onEnd, onAccept }) {
-  const [elapsed, setElapsed] = useState(0);
-  const [muted,   setMuted]   = useState(false);
-  const [camOff,  setCamOff]  = useState(false);
-  const timer = useRef(null);
-
-  useEffect(() => {
-    if (callState === 'connected') timer.current = setInterval(() => setElapsed(s => s + 1), 1000);
-    return () => clearInterval(timer.current);
-  }, [callState]);
-
-  const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-
-  return (
-    <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
-      style={{ background: 'rgba(8,9,18,0.97)', backdropFilter: 'blur(24px)' }}
-    >
-      <div className="flex flex-col items-center gap-8 w-full max-w-xs text-center animate-fade-up px-6">
-
-        {/* Avatar + ripple */}
-        <div className="relative flex items-center justify-center">
-          {callState === 'calling' && <>
-            <span className="absolute w-36 h-36 rounded-full animate-ping" style={{ background: 'rgba(109,92,255,0.15)', animationDuration: '1.4s' }} />
-            <span className="absolute w-28 h-28 rounded-full animate-ping" style={{ background: 'rgba(109,92,255,0.2)', animationDuration: '1s' }} />
-          </>}
-          <div className="relative w-24 h-24 rounded-full ring-4" style={{ '--tw-ring-color': 'rgba(109,92,255,0.5)' }}>
-            {otherAvatar
-              ? <img src={otherAvatar} alt="" className="w-24 h-24 rounded-full object-cover" />
-              : (
-                <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold text-white" style={{ background: 'linear-gradient(135deg, #6d5cff, #4c2dd1)' }}>
-                  {getInitials(otherName)}
-                </div>
-              )
-            }
-          </div>
-        </div>
-
-        {/* Name + state */}
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'Sora, sans-serif' }}>{otherName}</h2>
-          <p className="text-white/50 text-sm font-medium">
-            {callState === 'calling'   && (callType === 'video' ? 'Video calling…' : 'Voice calling…')}
-            {callState === 'ringing'   && 'Incoming call…'}
-            {callState === 'connected' && fmt(elapsed)}
-          </p>
-        </div>
-
-        {/* Video preview */}
-        {callState === 'connected' && callType === 'video' && !camOff && (
-          <div className="w-full h-40 rounded-2xl flex flex-col items-center justify-center gap-2" style={{ background: 'linear-gradient(135deg, #12131f, #1c1e30)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <span className="text-3xl">📹</span>
-            <span className="text-xs text-white/30">Camera preview</span>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-5">
-          {callState === 'ringing' && (
-            <button
-              onClick={onAccept}
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95"
-              style={{ background: '#16b364', boxShadow: '0 8px 24px rgba(22,179,100,0.4)' }}
-            >
-              📞
-            </button>
-          )}
-
-          {callState === 'connected' && (
-            <>
-              <button
-                onClick={() => setMuted(m => !m)}
-                className="w-14 h-14 rounded-full flex flex-col items-center justify-center gap-0.5 text-base transition-all hover:scale-110"
-                style={{ background: muted ? 'rgba(240,68,95,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${muted ? 'rgba(240,68,95,0.4)' : 'rgba(255,255,255,0.1)'}`, color: muted ? '#f0445f' : '#fff' }}
-              >
-                {muted ? '🔇' : '🎤'}
-                <span className="text-[9px] font-medium" style={{ color: muted ? '#f0445f' : 'rgba(255,255,255,0.4)' }}>{muted ? 'Muted' : 'Mute'}</span>
-              </button>
-              {callType === 'video' && (
-                <button
-                  onClick={() => setCamOff(c => !c)}
-                  className="w-14 h-14 rounded-full flex flex-col items-center justify-center gap-0.5 text-base transition-all hover:scale-110"
-                  style={{ background: camOff ? 'rgba(240,68,95,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${camOff ? 'rgba(240,68,95,0.4)' : 'rgba(255,255,255,0.1)'}`, color: camOff ? '#f0445f' : '#fff' }}
-                >
-                  {camOff ? '📷' : '📹'}
-                  <span className="text-[9px] font-medium" style={{ color: camOff ? '#f0445f' : 'rgba(255,255,255,0.4)' }}>Camera</span>
-                </button>
-              )}
-            </>
-          )}
-
-          {/* End / Decline */}
-          <button
-            onClick={onEnd}
-            className="w-16 h-16 rounded-full flex flex-col items-center justify-center gap-0.5 text-2xl transition-all hover:scale-110 active:scale-95"
-            style={{ background: '#f0445f', boxShadow: '0 8px 24px rgba(240,68,95,0.4)' }}
-          >
-            📵
-            <span className="text-[9px] font-medium text-white/70">{callState === 'ringing' ? 'Decline' : 'End'}</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-CallOverlay.propTypes = {
-  callType:    PropTypes.oneOf(['voice', 'video']).isRequired,
-  callState:   PropTypes.oneOf(['calling', 'ringing', 'connected']).isRequired,
-  otherName:   PropTypes.string.isRequired,
-  otherAvatar: PropTypes.string,
-  onEnd:       PropTypes.func.isRequired,
-  onAccept:    PropTypes.func,
-};
-
 /* ─── Icon buttons ──────────────────────────────────────────────── */
 function IconBtn({ title, onClick, children, active, danger }) {
   return (
@@ -277,9 +163,7 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
   // Persist last-seen across conversation switches
   const lastSeenRef = useRef({});  // { [userId]: ISO string }
 
-  /* Call */
-  const [callType,  setCallType]  = useState(null);
-  const [callState, setCallState] = useState(null);
+  const { startCall } = useCallContext();
 
   const [showEmoji,    setShowEmoji]    = useState(false);
   const [isUploading,  setIsUploading]  = useState(false);
@@ -292,7 +176,6 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
   const fileInputRef = useRef(null);
   const emojiRef     = useRef(null);
   const typingTimer  = useRef(null);
-  const callTimer    = useRef(null);
 
   const active      = conversations.find(c => c.id === activeId);
   const otherUserId = active ? resolveOther(active).userId  : null;
@@ -321,9 +204,6 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
       },
       'typing':      ({ conversationId, userId }) => { if (conversationId === activeId && userId !== user?.id) setTyping(true); },
       'stop-typing': ({ conversationId, userId }) => { if (conversationId === activeId && userId !== user?.id) setTyping(false); },
-      'call-incoming':    ({ from, callType: ct }) => { if (from === otherUserId) { setCallType(ct); setCallState('ringing'); } },
-      'call-accepted':    () => setCallState('connected'),
-      'call-ended':       () => { setCallType(null); setCallState(null); clearTimeout(callTimer.current); },
       'message-reaction': ({ messageId, reactions }) => {
         setMessages(prev => prev.map(m =>
           m.id === messageId
@@ -496,26 +376,6 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const startCall = type => {
-    if (!activeId || !otherUserId) return;
-    setCallType(type);
-    setCallState('calling');
-    emit('call-start', { to: otherUserId, callType: type, conversationId: activeId });
-    callTimer.current = setTimeout(() => setCallState('connected'), 3000);
-  };
-
-  const endCall = () => {
-    emit('call-end', { to: otherUserId, conversationId: activeId });
-    setCallType(null);
-    setCallState(null);
-    clearTimeout(callTimer.current);
-  };
-
-  const acceptCall = () => {
-    emit('call-accept', { to: otherUserId, conversationId: activeId });
-    setCallState('connected');
   };
 
   const handleReaction = useCallback(async (messageId, emoji) => {
@@ -712,8 +572,8 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
 
               {/* Call buttons */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <IconBtn title="Voice call" onClick={() => startCall('voice')}>📞</IconBtn>
-                <IconBtn title="Video call" onClick={() => startCall('video')}>🎥</IconBtn>
+                <IconBtn title="Voice call" onClick={() => startCall(otherUserId, activeId, 'voice', { name: otherName, avatar: otherAvatar })}>📞</IconBtn>
+                <IconBtn title="Video call" onClick={() => startCall(otherUserId, activeId, 'video', { name: otherName, avatar: otherAvatar })}>🎥</IconBtn>
               </div>
             </>
           ) : (
@@ -1054,18 +914,6 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
           </div>
         </div>
       </div>
-
-      {/* ══ CALL OVERLAY ════════════════════════════════════════════ */}
-      {callType && callState && (
-        <CallOverlay
-          callType={callType}
-          callState={callState}
-          otherName={otherName}
-          otherAvatar={otherAvatar}
-          onEnd={endCall}
-          onAccept={acceptCall}
-        />
-      )}
 
       {/* ══ ATTACHMENT LIGHTBOX ═════════════════════════════════════ */}
       {lightbox && (
