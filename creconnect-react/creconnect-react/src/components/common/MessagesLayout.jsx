@@ -16,6 +16,14 @@ function getInitials(name = '') {
   return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2) || '?';
 }
 
+// Backend returns a real `unread: true/false` per conversation (fixes it always
+// resetting to blank on page load). The rest of this component treats `unread` as a
+// small count for badge/bold-text rendering, so convert the boolean into 1/0 here
+// rather than touching every render site.
+function normalizeUnread(list) {
+  return list.map((c) => ({ ...c, unread: c.unread ? 1 : 0 }));
+}
+
 function formatPresence(isOnline, lastSeen) {
   if (isOnline) return { text: 'Active now', color: '#16b364', dot: true };
   if (!lastSeen) return { text: 'Offline', color: 'var(--fg-muted)', dot: false };
@@ -329,7 +337,7 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
   useEffect(() => {
     messagesApi.getConversations()
       .then(async ({ data }) => {
-        const list = Array.isArray(data) ? data : (data?.data ?? []);
+        const list = normalizeUnread(Array.isArray(data) ? data : (data?.data ?? []));
         setConversations(list);
 
         if (stateConvId) {
@@ -349,7 +357,7 @@ export default function MessagesLayout({ resolveOther, sidebarTitle }) {
           // Refresh list in background to get full server data (removes any dup)
           messagesApi.getConversations()
             .then(({ data: fresh }) => {
-              const freshList = Array.isArray(fresh) ? fresh : (fresh?.data ?? []);
+              const freshList = normalizeUnread(Array.isArray(fresh) ? fresh : (fresh?.data ?? []));
               if (freshList.length) setConversations(freshList);
             })
             .catch(() => {});

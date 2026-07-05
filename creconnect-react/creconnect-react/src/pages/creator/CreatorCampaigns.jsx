@@ -483,6 +483,7 @@ export default function CreatorCampaigns() {
       setOffers((prev) => prev.filter((o) => o.id !== offer.id));
       toast.success('Invitation accepted! The brand has been notified.');
       loadCollabs();
+      window.dispatchEvent(new Event('cc:collab-requests:changed'));
     } catch (err) {
       toast.error(err?.message || 'Failed to accept invitation.');
     }
@@ -492,6 +493,7 @@ export default function CreatorCampaigns() {
     await campaignsApi.respondToInvitation(offer.id, 'reject');
     setOffers((prev) => prev.filter((o) => o.id !== offer.id));
     toast.info('Invitation declined. The brand has been notified.');
+    window.dispatchEvent(new Event('cc:collab-requests:changed'));
   }, [toast]);
 
   const openDrawer = (campaign) => { setDrawerCampaign(campaign); setDrawerOpen(true); };

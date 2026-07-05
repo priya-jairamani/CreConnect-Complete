@@ -351,6 +351,7 @@ export default function BrandCollaborations() {
     try {
       await campaignsApi.respondApplication(appId, action);
       await Promise.all([loadApps(), loadCollabs()]);
+      window.dispatchEvent(new Event('cc:collab-requests:changed'));
     } catch (err) {
       toast.error(err?.message || 'Failed to respond to application.');
     }

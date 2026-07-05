@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { Conversation, Message, CreatorProfile, BrandProfile, User } = require('../models');
 const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
@@ -9,13 +10,21 @@ async function getConversations(userId, role) {
     ? { '$creator.userId$': userId }
     : { '$brand.userId$':   userId };
 
-  return Conversation.findAll({
+  const conversations = await Conversation.findAll({
     where,
     order: [['lastMessageAt', 'DESC']],
     include: [
       { model: CreatorProfile, as: 'creator', attributes: ['userId', 'displayName', 'avatarUrl', 'username'] },
       { model: BrandProfile,   as: 'brand',   attributes: ['userId', 'companyName', 'logoUrl'] },
     ],
+  });
+
+  // Attach a real, reload-safe unread flag per conversation for the requesting user —
+  // independent of the other participant's own read state.
+  return conversations.map((c) => {
+    const readAt = role === 'CREATOR' ? c.creatorReadAt : c.brandReadAt;
+    const unread = !!c.lastMessageAt && c.lastMessageSenderId !== userId && (!readAt || readAt < c.lastMessageAt);
+    return { ...c.toJSON(), unread };
   });
 }
 
@@ -138,33 +147,30 @@ async function toggleReaction(messageId, userId, emoji) {
 
 async function markConversationRead(conversationId, userId) {
   const convo = await _assertParticipant(conversationId, userId);
-  if (convo.lastMessageSenderId && convo.lastMessageSenderId !== userId) {
-    await Conversation.update(
-      { lastMessageSenderId: userId },   // treated as "I've read up to here"
-      { where: { id: conversationId } }
-    );
-  }
+  const isCreatorSide = convo.creator.userId === userId;
+  // Each side's read timestamp is independent — reading a conversation never touches
+  // the other participant's read state, so it can't flip their unread count.
+  await convo.update(isCreatorSide ? { creatorReadAt: new Date() } : { brandReadAt: new Date() });
 }
 
 async function getUnreadCount(userId) {
-  const { Op } = require('sequelize');
-  const where = {
-    // sender is someone other than the current user (NULL != userId is falsy in PG, so NULLs are excluded)
-    lastMessageSenderId: { [Op.ne]: userId },
-    // exclude null AND empty string (empty string was stored for attachment-only messages before the fix)
-    lastMessage: { [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: '' }] },
-  };
-  // Only count conversations the user participates in
+  // Only conversations with an actual message can be unread
   const conversations = await Conversation.findAll({
-    where,
+    where: { lastMessageAt: { [Op.ne]: null } },
     include: [
       { model: CreatorProfile, as: 'creator', attributes: ['userId'] },
       { model: BrandProfile,   as: 'brand',   attributes: ['userId'] },
     ],
   });
-  return conversations.filter(
-    (c) => c.creator?.userId === userId || c.brand?.userId === userId
-  ).length;
+
+  return conversations.filter((c) => {
+    const isCreatorSide = c.creator?.userId === userId;
+    const isBrandSide   = c.brand?.userId === userId;
+    if (!isCreatorSide && !isBrandSide) return false;
+    if (c.lastMessageSenderId === userId) return false; // you sent the last message — nothing new for you
+    const readAt = isCreatorSide ? c.creatorReadAt : c.brandReadAt;
+    return !readAt || readAt < c.lastMessageAt;
+  }).length;
 }
 
 module.exports = { getConversations, createConversation, getMessages, sendMessage, markConversationRead, getUnreadCount, toggleReaction };

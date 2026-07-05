@@ -121,6 +121,22 @@ async function getMyApplications(userId, query) {
   return { items: rows, total: count, page, limit };
 }
 
+// Count only — for the sidebar badge. Naturally decreases only when a request is
+// accepted/rejected (status leaves PENDING), never just from viewing the list.
+async function getPendingRequestsCount(userId) {
+  const profile = await BrandProfile.findOne({ where: { userId } });
+  if (!profile) return 0;
+
+  const campaignIds = (await Campaign.findAll({
+    where: { brandId: profile.id },
+    attributes: ['id'],
+    raw: true,
+  })).map((c) => c.id);
+  if (!campaignIds.length) return 0;
+
+  return Application.count({ where: { campaignId: { [Op.in]: campaignIds }, status: 'PENDING' } });
+}
+
 async function listBrands(query) {
   const { offset, limit, page } = parsePagination(query);
   const where = { '$user.status$': 'APPROVED' };
@@ -152,4 +168,4 @@ async function getMyActivity(userId, query) {
   return { items: rows, total: count, page, limit };
 }
 
-module.exports = { getMyProfile, updateMyProfile, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands, getMyActivity };
+module.exports = { getMyProfile, updateMyProfile, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, getPendingRequestsCount, listBrands, getMyActivity };

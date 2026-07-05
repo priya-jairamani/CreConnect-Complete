@@ -103,6 +103,17 @@ router.get('/me/applications',    authenticate, authorize('BRAND'), ctrl.getMyAp
 
 /**
  * @swagger
+ * /brands/me/pending-requests-count:
+ *   get:
+ *     summary: Count of pending creator applications awaiting a response (BRAND only)
+ *     tags: [Brands]
+ *     responses:
+ *       200: { description: Pending count }
+ */
+router.get('/me/pending-requests-count', authenticate, authorize('BRAND'), ctrl.getPendingRequestsCount);
+
+/**
+ * @swagger
  * /brands/list:
  *   get:
  *     summary: List and search all approved brands

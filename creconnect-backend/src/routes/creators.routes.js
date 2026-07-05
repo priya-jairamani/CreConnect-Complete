@@ -171,6 +171,17 @@ router.get('/me/collaborations', authenticate, authorize('CREATOR'), ctrl.getCol
 router.get('/me/offers',       authenticate, authorize('CREATOR'), ctrl.getOffers);
 router.get('/me/applications', authenticate, authorize('CREATOR'), ctrl.getApplications);
 
+/**
+ * @swagger
+ * /creators/me/pending-invites-count:
+ *   get:
+ *     summary: Count of brand invitations awaiting a response (CREATOR only)
+ *     tags: [Creators]
+ *     responses:
+ *       200: { description: Pending count }
+ */
+router.get('/me/pending-invites-count', authenticate, authorize('CREATOR'), ctrl.getPendingInvitesCount);
+
 router.get   ('/me/media',                 authenticate, authorize('CREATOR'), ctrl.getMedia);
 router.post  ('/me/media',                 authenticate, authorize('CREATOR'), ctrl.addMedia);
 router.patch ('/me/media/reorder',         authenticate, authorize('CREATOR'), ctrl.reorderMedia);

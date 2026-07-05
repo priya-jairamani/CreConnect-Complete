@@ -120,6 +120,15 @@ async function getMyOffers(userId) {
   });
 }
 
+// Count only — for the sidebar badge. Only brand-initiated invitations count (not the
+// creator's own pending applications), and it naturally decreases only when the
+// creator accepts/rejects (status leaves INVITED), never just from viewing the list.
+async function getPendingInvitesCount(userId) {
+  const profile = await CreatorProfile.findOne({ where: { userId } });
+  if (!profile) return 0;
+  return Application.count({ where: { creatorId: profile.id, status: 'INVITED' } });
+}
+
 async function getMyApplications(userId) {
   const profile = await CreatorProfile.findOne({ where: { userId } });
   if (!profile) throw new NotFoundError('Creator profile not found');
@@ -219,4 +228,4 @@ async function reorderMedia(userId, orderedIds) {
   );
 }
 
-module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, syncPayoutStatus, refreshPayoutStatus };
+module.exports = { getMyProfile, updateMyProfile, getStats, getMyCollaborations, getMyOffers, getPendingInvitesCount, getMyApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, syncPayoutStatus, refreshPayoutStatus };

@@ -32,6 +32,10 @@ const getOffers = async (req, res, next) => {
   try { ok(res, await svc.getMyOffers(req.user.id)); } catch (e) { next(e); }
 };
 
+const getPendingInvitesCount = async (req, res, next) => {
+  try { ok(res, { count: await svc.getPendingInvitesCount(req.user.id) }); } catch (e) { next(e); }
+};
+
 const addPlatform = async (req, res, next) => {
   try { created(res, await svc.addPlatform(req.user.id, req.body)); } catch (e) { next(e); }
 };
@@ -78,4 +82,4 @@ const getPublicMedia = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, refreshPayoutStatus };
+module.exports = { getMe, updateMe, getStats, getCollaborations, getOffers, getPendingInvitesCount, getApplications, addPlatform, removePlatform, getPublicProfile, getMedia, getPublicMedia, addMedia, updateMedia, deleteMedia, setFeatured, reorderMedia, startPayoutOnboarding, refreshPayoutStatus };

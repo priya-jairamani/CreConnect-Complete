@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
     lastMessage:         { type: DataTypes.TEXT },
     lastMessageAt:       { type: DataTypes.DATE },
     lastMessageSenderId: { type: DataTypes.UUID },
+    // When each side last read this conversation — independent of who sent the last
+    // message, so one side reading doesn't affect the other side's unread state.
+    creatorReadAt:       { type: DataTypes.DATE },
+    brandReadAt:         { type: DataTypes.DATE },
   }, {
     tableName: 'conversations',
     timestamps: true,

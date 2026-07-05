@@ -34,6 +34,10 @@ const getMyApplications = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const getPendingRequestsCount = async (req, res, next) => {
+  try { ok(res, { count: await svc.getPendingRequestsCount(req.user.id) }); } catch (e) { next(e); }
+};
+
 const listBrands = async (req, res, next) => {
   try {
     const { items, total, page, limit } = await svc.listBrands(req.query);
@@ -48,4 +52,4 @@ const getMyActivity = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { getMe, updateMe, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, listBrands, getMyActivity };
+module.exports = { getMe, updateMe, getStats, getMyCampaigns, getMyCollaborations, getMyApplications, getPendingRequestsCount, listBrands, getMyActivity };

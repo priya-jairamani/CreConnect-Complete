@@ -8,6 +8,7 @@ export const creatorsApi = {
   refreshPayoutStatus:   ()          => api.post('/creators/me/payouts/refresh'),
   getCollaborations: (params)        => api.get('/creators/me/collaborations', { params }),
   getOffers:         ()              => api.get('/creators/me/offers'),
+  getPendingInvitesCount: ()         => api.get('/creators/me/pending-invites-count'),
   getApplications:   ()              => api.get('/creators/me/applications'),
   addPlatform:       (data)          => api.post('/creators/me/platforms', data),
   removePlatform:    (id)            => api.delete(`/creators/me/platforms/${id}`),

@@ -5,6 +5,7 @@ import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotification } from '@/hooks/useNotification';
 import { useMessageCount } from '@/hooks/useMessageCount';
+import { useCollabRequestsCount } from '@/hooks/useCollabRequestsCount';
 import ThemeToggle from '@/components/common/ThemeToggle';
 import Logo from '@/components/common/Logo';
 
@@ -24,6 +25,7 @@ export default function CreatorSidebar() {
   const { logout, user } = useAuth();
   const { unreadCount }  = useNotification();
   const msgCount         = useMessageCount();
+  const collabCount      = useCollabRequestsCount();
 
   const profile     = user?.profile ?? {};
   const displayName = profile.displayName || profile.username || user?.email?.split('@')[0] || 'Creator';
@@ -100,7 +102,8 @@ export default function CreatorSidebar() {
         {!c && <p className="text-[10px] font-semibold text-fg-muted uppercase tracking-widest px-2 mb-2 mt-1">Menu</p>}
         {NAV.map(({ icon, label, to }) => {
           const isMessages = to === ROUTES.CREATOR_MESSAGES;
-          const badge      = isMessages && msgCount > 0 ? msgCount : 0;
+          const isCollabs  = to === ROUTES.CREATOR_COLLABS;
+          const badge      = isMessages ? msgCount : isCollabs ? collabCount : 0;
           return (
             <NavLink
               key={to}

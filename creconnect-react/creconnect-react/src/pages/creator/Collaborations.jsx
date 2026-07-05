@@ -26,6 +26,7 @@ import CollabEmptyState from '@/components/collaboration/CollabEmptyState';
 
 const STAGE_OVERRIDES_KEY = 'cc-collab-stage-overrides';
 const SAVED_VIEWS_KEY     = 'cc-collab-saved-views';
+const SEEN_NOTIFS_KEY     = 'cc-collab-seen-notifications';
 
 const DEFAULT_FILTERS = { stages: [], priorities: [], paymentStatuses: [] };
 
@@ -234,6 +235,7 @@ export default function Collaborations() {
 
   const [stageOverrides, setStageOverrides] = useState(() => loadJSON(STAGE_OVERRIDES_KEY, {}));
   const [savedViews,     setSavedViews]     = useState(() => loadJSON(SAVED_VIEWS_KEY, []));
+  const [seenNotifIds,   setSeenNotifIds]   = useState(() => loadJSON(SEEN_NOTIFS_KEY, []));
 
   const [viewMode,  setViewMode]  = useState('kanban');
   const [search,    setSearch]    = useState('');
@@ -261,6 +263,11 @@ export default function Collaborations() {
 
   const summary       = useMemo(() => computeSummary(items), [items]);
   const notifications = useMemo(() => getCollaborationNotifications(items), [items]);
+  const seenNotifSet   = useMemo(() => new Set(seenNotifIds), [seenNotifIds]);
+  const unseenNotifCount = useMemo(
+    () => notifications.filter((n) => !seenNotifSet.has(n.id)).length,
+    [notifications, seenNotifSet],
+  );
 
   const filteredEnriched = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -316,6 +323,15 @@ export default function Collaborations() {
     handleOpen(item);
   }, [handleOpen]);
 
+  const handleOpenNotifications = useCallback(() => {
+    setNotificationsOpen(true);
+    setSeenNotifIds((prev) => {
+      const next = Array.from(new Set([...prev, ...notifications.map((n) => n.id)]));
+      localStorage.setItem(SEEN_NOTIFS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, [notifications]);
+
   const isEmpty = !isLoading && (campaigns ?? []).length === 0;
 
   return (
@@ -349,8 +365,8 @@ export default function Collaborations() {
             onApplyView={handleApplyView}
             onDeleteView={handleDeleteView}
             onOpenCopilot={() => setCopilotOpen(true)}
-            onOpenNotifications={() => setNotificationsOpen(true)}
-            notificationCount={notifications.length}
+            onOpenNotifications={handleOpenNotifications}
+            notificationCount={unseenNotifCount}
           />
 
           {viewMode === 'kanban'   && <KanbanBoard columns={columns} onOpen={handleOpen} onMessage={handleMessage} onSubmit={handleSubmit} onMoveStage={handleMoveStage} />}
