@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '@/api/admin.api';
@@ -8,32 +8,16 @@ import KPIStatCard from '@/components/adminDashboard/KPIStatCard';
 import PlatformHealthRing from '@/components/adminDashboard/PlatformHealthRing';
 import ActivityPulseCard from '@/components/adminDashboard/ActivityPulseCard';
 import GrowthChart from '@/components/adminDashboard/GrowthChart';
-import InsightCard from '@/components/adminDashboard/InsightCard';
 import ActivityFeed from '@/components/adminDashboard/ActivityFeed';
 import RiskCard from '@/components/adminDashboard/RiskCard';
 import QuickActionsPanel from '@/components/adminDashboard/QuickActionsPanel';
-import DashboardFilters from '@/components/adminDashboard/DashboardFilters';
+import DashboardFilters, { FILTER_OPTIONS } from '@/components/adminDashboard/DashboardFilters';
 import AdminGlobalSearch from '@/components/adminDashboard/AdminGlobalSearch';
 
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
 import { SkeletonCard } from '@/components/common/Skeleton';
 import { formatCompactPKR } from '@/utils/formatters';
-
-import {
-  EXECUTIVE_KPIS,
-  PLATFORM_HEALTH,
-  getHealthStatus,
-  computeHealthScore,
-  MARKETPLACE_ACTIVITY,
-  GROWTH_RANGES,
-  getGrowthSeries,
-  REVENUE_SUMMARY,
-  TRUST_SAFETY,
-  AI_INSIGHTS,
-  getLiveFeed,
-  FILTER_OPTIONS,
-} from '@/utils/mockAdminDashboard';
 
 /* ─── Executive growth chart definitions ────────────────────────────
    Ordered per spec:
@@ -49,12 +33,36 @@ const GROWTH_CHARTS = [
   { key: 'brands',    title: 'Brand Growth',             color: '#f59e0b', group: 'crb'       },
 ];
 
+const GROWTH_RANGES = ['7d', '30d', '90d', '1y'];
+
+/* Static presentation metadata for each real KPI — icons/colors/format only, no fabricated values */
+const KPI_META = {
+  totalUsers:      { label: 'Total Users',            icon: '👥', format: 'number', accent: '#6d5cff', seriesKey: 'users' },
+  activeCreators:  { label: 'Active Creators',        icon: '✦',  format: 'number', accent: '#857fff', seriesKey: 'creators' },
+  activeBrands:    { label: 'Active Brands',          icon: '🏢', format: 'number', accent: '#f59e0b', seriesKey: 'brands' },
+  activeCampaigns: { label: 'Active Campaigns',       icon: '◈',  format: 'number', accent: '#16b364', seriesKey: 'campaigns' },
+  monthlyRevenue:  { label: 'Platform Revenue',       icon: '💰', format: 'pkr',    accent: '#16b364', seriesKey: null },
+  gmv:             { label: 'Gross Marketplace Value',icon: '📈', format: 'pkr',    accent: '#6d5cff', seriesKey: null },
+};
+
+const HEALTH_ICON = { userGrowth: '👥', campaignSuccess: '◈', retention: '✦', payments: '💳', reportVolume: '🛡️' };
+
+const ACTIVITY_META = [
+  { key: 'campaignsToday',        label: 'Campaigns Launched Today', icon: '🚀', format: 'number' },
+  { key: 'collabsStarted',        label: 'Collaborations Started',   icon: '🤝', format: 'number' },
+  { key: 'messagesToday',         label: 'Messages Sent Today',      icon: '💬', format: 'number' },
+  { key: 'paymentsReleasedToday', label: 'Payments Released Today',  icon: '💸', format: 'pkr' },
+];
+
 /* Revenue Snapshot — 3 key figures only; full analytics live in Revenue & Payments */
 const REVENUE_SNAPSHOT = [
   { key: 'gmv',             label: 'Gross Marketplace Volume',  icon: '💹' },
   { key: 'platformRevenue', label: 'Platform Revenue',          icon: '💰' },
   { key: 'creatorEarnings', label: 'Creator Earnings',          icon: '🎯' },
 ];
+
+const FEED_TYPE_ICON = { user: '🆕', campaign: '🚀', payment: '💸', report: '🚩' };
+const FEED_TYPE_REMAP = { user: 'users', campaign: 'campaigns', payment: 'payments', report: 'safety' };
 
 function defaultFilters() {
   return {
@@ -64,6 +72,18 @@ function defaultFilters() {
     campaignType:    FILTER_OPTIONS.campaignType[0],
     creatorCategory: FILTER_OPTIONS.creatorCategory[0],
   };
+}
+
+function computeHealthScore(breakdown) {
+  if (!breakdown.length) return 0;
+  return Math.round(breakdown.reduce((sum, b) => sum + b.value, 0) / breakdown.length);
+}
+
+function getHealthStatus(score) {
+  if (score >= 85) return { label: 'Excellent', variant: 'success' };
+  if (score >= 70) return { label: 'Good',      variant: 'brand' };
+  if (score >= 50) return { label: 'Warning',   variant: 'warning' };
+  return { label: 'Critical', variant: 'danger' };
 }
 
 /* ─── Announcement delivery channels ───────────────────────────── */
@@ -82,6 +102,8 @@ const TEMPLATES = [
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [isLoading,    setIsLoading]    = useState(true);
+  const [analytics,    setAnalytics]    = useState(null);
+  const [searchIndex,  setSearchIndex]  = useState([]);
   const [growthRange,  setGrowthRange]  = useState('30d');
   const [filters,      setFilters]      = useState(defaultFilters);
 
@@ -95,29 +117,70 @@ export default function AdminDashboard() {
   const [sent,         setSent]         = useState(false);
 
   useEffect(() => {
-    adminApi.getAnalytics().catch(() => {}).finally(() => setIsLoading(false));
+    setIsLoading(true);
+    adminApi.getAnalytics({ range: growthRange })
+      .then(({ data }) => setAnalytics(data?.data ?? data))
+      .catch(() => setAnalytics(null))
+      .finally(() => setIsLoading(false));
+  }, [growthRange]);
+
+  // Real global-search index — built once from the actual users/campaigns lists
+  useEffect(() => {
+    Promise.all([adminApi.getUsers({ limit: 20 }), adminApi.getCampaigns({ limit: 20 })])
+      .then(([usersRes, campaignsRes]) => {
+        const users     = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.data ?? []);
+        const campaigns = Array.isArray(campaignsRes.data) ? campaignsRes.data : (campaignsRes.data?.data ?? []);
+        const userEntries = users.map((u) => ({
+          id: `u-${u.id}`,
+          type: u.role === 'CREATOR' ? 'creator' : u.role === 'BRAND' ? 'brand' : 'user',
+          label: u.creatorProfile?.displayName || u.brandProfile?.companyName || u.email,
+          sub: `${u.role.charAt(0)}${u.role.slice(1).toLowerCase()} · ${u.status}`,
+        }));
+        const campaignEntries = campaigns.map((c) => ({
+          id: `c-${c.id}`, type: 'campaign', label: c.title, sub: `Campaign · ${c.status}`,
+        }));
+        setSearchIndex([...userEntries, ...campaignEntries]);
+      })
+      .catch(() => setSearchIndex([]));
   }, []);
 
-  const healthScore  = useMemo(() => computeHealthScore(PLATFORM_HEALTH.breakdown), []);
+  const healthScore  = useMemo(() => computeHealthScore(analytics?.platformHealth?.breakdown ?? []), [analytics]);
   const healthStatus = useMemo(() => getHealthStatus(healthScore), [healthScore]);
-  const growthData   = useMemo(() => getGrowthSeries(growthRange), [growthRange]);
-  const liveFeed     = useMemo(() => getLiveFeed(24), []);
+  const growthData   = useMemo(() => analytics?.growthSeries ?? [], [analytics]);
+
+  const kpiCards = useMemo(() => {
+    if (!analytics?.kpis) return [];
+    return Object.entries(KPI_META).map(([key, meta]) => {
+      const k = analytics.kpis[key] ?? { value: 0, changePct: 0 };
+      const prevValue = k.changePct ? k.value / (1 + k.changePct / 100) : k.value;
+      const sparkline = meta.seriesKey ? growthData.slice(-14).map((g) => g[meta.seriesKey] ?? 0) : [];
+      return { id: key, label: meta.label, icon: meta.icon, accent: meta.accent, format: meta.format, value: k.value, prevValue, sparkline };
+    });
+  }, [analytics, growthData]);
+
+  const healthBreakdown = (analytics?.platformHealth?.breakdown ?? []).map((item) => ({ ...item, icon: HEALTH_ICON[item.id] ?? '📊' }));
+
+  const activityCards = ACTIVITY_META.map((meta) => ({
+    id: meta.key, label: meta.label, icon: meta.icon, format: meta.format,
+    value: analytics?.marketplaceActivityToday?.[meta.key] ?? 0,
+  }));
+
+  const trustSafetyCards = analytics?.trustSafety ? [
+    { id: 'pendingReports',  label: 'Pending Reports',  icon: '🚩', value: analytics.trustSafety.pendingReports,  severity: analytics.trustSafety.pendingReports > 0 ? 'warning' : 'success', trend: 0, action: 'Review Reports' },
+    { id: 'resolvedReports', label: 'Resolved Reports', icon: '✅', value: analytics.trustSafety.resolvedReports, severity: 'success', trend: 0, action: 'View Reports' },
+    { id: 'paymentDisputes', label: 'Payment Disputes', icon: '⚖️', value: analytics.trustSafety.paymentDisputes, severity: analytics.trustSafety.paymentDisputes > 0 ? 'danger' : 'success', trend: 0, action: 'Resolve' },
+  ] : [];
+
+  const feedItems = (analytics?.feed ?? []).map((f) => ({ ...f, type: FEED_TYPE_REMAP[f.type] ?? f.type, icon: FEED_TYPE_ICON[f.type] }));
 
   function handleFilterChange(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleQuickAction(actionId) {
-    if (actionId === 'verify')          return navigate(ROUTES.ADMIN_USERS);
-    if (actionId === 'announce')        { setComposerOpen(true); return; }
-    if (actionId === 'export')          return exportAnalyticsCsv();
-    if (actionId === 'pending_reports') return navigate(ROUTES.ADMIN_TRUST_SAFETY);
-  }
-
-  function exportAnalyticsCsv() {
+  const exportAnalyticsCsv = useCallback(() => {
     const rows = [
       ['Metric', 'Current Value', 'Previous Period'],
-      ...EXECUTIVE_KPIS.map((k) => [k.label, k.value, k.prevValue]),
+      ...kpiCards.map((k) => [k.label, k.value, Math.round(k.prevValue)]),
     ];
     const csv  = rows.map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -127,6 +190,13 @@ export default function AdminDashboard() {
     a.download = `creconnect-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }, [kpiCards]);
+
+  function handleQuickAction(actionId) {
+    if (actionId === 'verify')          return navigate(ROUTES.ADMIN_USERS);
+    if (actionId === 'announce')        { setComposerOpen(true); return; }
+    if (actionId === 'export')          return exportAnalyticsCsv();
+    if (actionId === 'pending_reports') return navigate(ROUTES.ADMIN_TRUST_SAFETY);
   }
 
   function toggleChannel(id) {
@@ -155,7 +225,7 @@ export default function AdminDashboard() {
         audience,
         channels,
       });
-    } catch { /* offline demo */ }
+    } catch { /* best-effort */ }
     setSending(false);
     setSent(true);
     setTimeout(() => { setSent(false); closeComposer(); }, 1400);
@@ -181,7 +251,7 @@ export default function AdminDashboard() {
             Real-time overview of the CreConnect marketplace — creators, brands, campaigns &amp; revenue.
           </p>
         </div>
-        <AdminGlobalSearch />
+        <AdminGlobalSearch items={searchIndex} />
       </div>
 
       {/* ── Global Filters ── */}
@@ -201,7 +271,7 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                {EXECUTIVE_KPIS.map((kpi) => <KPIStatCard key={kpi.id} kpi={kpi} />)}
+                {kpiCards.map((kpi) => <KPIStatCard key={kpi.id} kpi={kpi} />)}
               </div>
             )}
           </section>
@@ -216,7 +286,7 @@ export default function AdminDashboard() {
                 <PlatformHealthRing value={healthScore} status={healthStatus} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {PLATFORM_HEALTH.breakdown.map((item) => (
+                {healthBreakdown.map((item) => (
                   <div key={item.id} className="rounded-xl bg-surface-2 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="flex items-center gap-2 text-sm text-fg font-medium">
@@ -246,10 +316,10 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-semibold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
                 Marketplace Activity
               </h2>
-              <Badge variant="success" label="Updated just now" dot />
+              <Badge variant="success" label="Today" dot />
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {MARKETPLACE_ACTIVITY.map((item) => (
+              {activityCards.map((item) => (
                 <ActivityPulseCard key={item.id} {...item} />
               ))}
             </div>
@@ -330,7 +400,7 @@ export default function AdminDashboard() {
                   <span className="text-2xl flex-shrink-0">{c.icon}</span>
                   <div className="min-w-0">
                     <p className="text-xl font-bold text-fg leading-tight" style={{ fontFamily: 'Sora, sans-serif' }}>
-                      {formatCompactPKR(REVENUE_SUMMARY[c.key])}
+                      {formatCompactPKR(analytics?.revenue?.[c.key] ?? 0)}
                     </p>
                     <p className="text-fg-muted text-xs mt-1 leading-snug">{c.label}</p>
                   </div>
@@ -344,31 +414,16 @@ export default function AdminDashboard() {
             <h2 className="text-lg font-semibold text-fg mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>
               Trust &amp; Safety Snapshot
             </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-              {TRUST_SAFETY.map((item) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              {trustSafetyCards.map((item) => (
                 <RiskCard key={item.id} {...item} onAction={() => navigate(ROUTES.ADMIN_TRUST_SAFETY)} />
               ))}
             </div>
           </section>
 
-          {/* ── 7. AI Insights Center ── */}
+          {/* ── 7. Live Operations Feed ── */}
           <section>
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
-                AI Insights Center
-              </h2>
-              <Badge variant="brand" label="Beta" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AI_INSIGHTS.map((insight) => (
-                <InsightCard key={insight.id} insight={insight} />
-              ))}
-            </div>
-          </section>
-
-          {/* ── 8. Live Operations Feed ── */}
-          <section>
-            <ActivityFeed items={liveFeed} />
+            <ActivityFeed items={feedItems} />
           </section>
 
         </div>

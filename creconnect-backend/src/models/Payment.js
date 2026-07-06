@@ -4,12 +4,14 @@ module.exports = (sequelize, DataTypes) => {
     collaborationId: { type: DataTypes.UUID, allowNull: false },
     amountPKR:       { type: DataTypes.FLOAT, allowNull: false },
     status: {
-      type: DataTypes.ENUM('PENDING','ESCROW','RELEASED','PAID'),
+      type: DataTypes.ENUM('PENDING','ESCROW','RELEASED','PAID','DISPUTED'),
       defaultValue: 'PENDING',
     },
     stripePaymentId:  { type: DataTypes.STRING },
     stripeTransferId: { type: DataTypes.STRING },
     releasedAt:       { type: DataTypes.DATE },
+    disputeReason:    { type: DataTypes.TEXT },
+    disputedAt:       { type: DataTypes.DATE },
   }, { tableName: 'payments', timestamps: true });
 
   Payment.associate = (models) => {

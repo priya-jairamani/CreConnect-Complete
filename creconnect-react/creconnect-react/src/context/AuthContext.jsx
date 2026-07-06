@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { authApi } from '@/api/auth.api';
 import { findDemoAccount, buildDemoSession } from '@/utils/demoAccounts';
 
+const isAdminRole = (r) => String(r || '').toUpperCase() === 'ADMIN';
 const DEMO_MODE_KEY = 'cc_demo_mode';
 
 const initialState = {
@@ -95,8 +96,7 @@ export function AuthProvider({ children }) {
     // ── Demo accounts: bypass the backend entirely ─────────────────────
     const demoAccount = findDemoAccount(email, password);
     if (demoAccount) {
-      // Enforce tab restriction for demo accounts too
-      if (role && demoAccount.user.role.toUpperCase() !== 'ADMIN' && demoAccount.user.role.toLowerCase() !== role.toLowerCase()) {
+      if (role && !isAdminRole(demoAccount.user.role) && demoAccount.user.role.toLowerCase() !== role.toLowerCase()) {
         const expected = demoAccount.user.role.toLowerCase();
         const msg = `This is a ${expected} account. Please switch to the ${expected.charAt(0).toUpperCase() + expected.slice(1)} tab to sign in.`;
         dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: { message: msg } });
@@ -126,13 +126,12 @@ export function AuthProvider({ children }) {
 
       // ── Role tab restriction ───────────────────────────────────────────
       // The selected tab must match the account's actual role.
-      if (role && user.role && user.role.toUpperCase() !== 'ADMIN' && user.role.toLowerCase() !== role.toLowerCase()) {
+      if (role && user.role && !isAdminRole(user.role) && user.role.toLowerCase() !== role.toLowerCase()) {
         const actual   = user.role.toLowerCase();
         const expected = actual.charAt(0).toUpperCase() + actual.slice(1);
-        const selected = role.charAt(0).toUpperCase() + role.slice(1);
         const msg = `This is a ${expected} account. Please switch to the "${expected}" tab to sign in.`;
         dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: { message: msg } });
-        throw Object.assign(new Error(msg), { roleError: true, actual, selected });
+        throw Object.assign(new Error(msg), { roleError: true, actual, selected: role });
       }
 
       localStorage.removeItem(DEMO_MODE_KEY);

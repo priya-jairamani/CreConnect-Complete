@@ -10,7 +10,7 @@ const creator = async (req, res, next) => {
 };
 
 const admin = async (req, res, next) => {
-  try { ok(res, await svc.adminAnalytics()); } catch (e) { next(e); }
+  try { ok(res, await svc.adminAnalytics(req.query.range)); } catch (e) { next(e); }
 };
 
 module.exports = { brand, creator, admin };

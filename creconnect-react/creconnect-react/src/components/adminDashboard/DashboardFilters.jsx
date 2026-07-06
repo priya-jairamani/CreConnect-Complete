@@ -1,5 +1,12 @@
 import PropTypes from 'prop-types';
-import { FILTER_OPTIONS } from '@/utils/mockAdminDashboard';
+
+export const FILTER_OPTIONS = {
+  dateRange: ['Today', 'This Week', 'This Month', 'This Quarter', 'This Year'],
+  region: ['All Regions', 'Lahore', 'Karachi', 'Islamabad', 'Rawalpindi', 'International'],
+  industry: ['All Industries', 'Beauty', 'Fashion', 'Technology', 'Food & Beverage', 'Travel'],
+  campaignType: ['All Types', 'Sponsored Post', 'Reel/Video', 'Unboxing', 'Long-term Partnership'],
+  creatorCategory: ['All Categories', 'Nano (1K-10K)', 'Micro (10K-100K)', 'Mid (100K-500K)', 'Macro (500K+)'],
+};
 
 const FIELDS = [
   { key: 'dateRange', label: 'Date Range' },

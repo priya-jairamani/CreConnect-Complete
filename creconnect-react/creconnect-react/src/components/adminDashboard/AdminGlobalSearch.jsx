@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SEARCH_INDEX } from '@/utils/mockAdminDashboard';
 
 const TYPE_ICON = {
   user: '👤',
@@ -11,7 +11,7 @@ const TYPE_ICON = {
 };
 
 /** Marketplace entity search — find users, creators, brands & campaigns. */
-export default function AdminGlobalSearch() {
+export default function AdminGlobalSearch({ items }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -25,10 +25,10 @@ export default function AdminGlobalSearch() {
   }, [open]);
 
   const results = useMemo(() => {
-    if (!query.trim()) return SEARCH_INDEX.slice(0, 6);
+    if (!query.trim()) return items.slice(0, 6);
     const q = query.toLowerCase();
-    return SEARCH_INDEX.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q));
-  }, [query]);
+    return items.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q));
+  }, [items, query]);
 
   return (
     <>
@@ -101,3 +101,13 @@ export default function AdminGlobalSearch() {
     </>
   );
 }
+
+AdminGlobalSearch.propTypes = {
+  items: PropTypes.arrayOf(PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired,
+    sub: PropTypes.string.isRequired,
+  })),
+};
+AdminGlobalSearch.defaultProps = { items: [] };

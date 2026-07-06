@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '@/hooks/useToast';
+import { adminApi } from '@/api/admin.api';
 import Button from '@/components/common/Button';
 import Badge from '@/components/common/Badge';
 import Drawer from '@/components/common/Drawer';
@@ -25,13 +26,18 @@ import {
   CONNECTED_SERVICES, API_KEYS, WEBHOOK_SECRETS, AUDIT_LOG,
 } from '@/utils/mockSettings';
 
-function buildInitialValues() {
+function buildInitialValues(overrides = {}) {
   const result = {};
   for (const sectionId of Object.keys(SETTINGS_SCHEMA)) {
     result[sectionId] = {};
     for (const group of SETTINGS_SCHEMA[sectionId]) {
       for (const field of group.fields) {
-        result[sectionId][field.id] = field.value;
+        // Use the real persisted value if the backend has an override for this
+        // field; otherwise fall back to the schema's default (the effective
+        // current value until an admin changes it for the first time).
+        result[sectionId][field.id] = Object.prototype.hasOwnProperty.call(overrides, field.id)
+          ? overrides[field.id]
+          : field.value;
       }
     }
   }
@@ -59,6 +65,8 @@ export default function Settings() {
   const [highlightFieldId, setHighlightFieldId] = useState(null);
 
   const [values, setValues] = useState(() => clone(INITIAL_VALUES));
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [privacyMatrix, setPrivacyMatrix] = useState(() => clone(PRIVACY_MATRIX.value));
   const [accessMatrix, setAccessMatrix] = useState(() => clone(ACCESS_CONTROL_MATRIX.value));
   const [featureMatrix, setFeatureMatrix] = useState(() => clone(FEATURE_ACCESS_MATRIX.value));
@@ -78,6 +86,32 @@ export default function Settings() {
     customAutomations: clone(CUSTOM_AUTOMATIONS),
     connectedServices: clone(CONNECTED_SERVICES),
   });
+
+  // Load the real persisted settings overrides from the backend on mount and
+  // merge them over the schema defaults (per-field: persisted value wins,
+  // schema default is the fallback until an admin saves that field for the
+  // first time).
+  useEffect(() => {
+    let cancelled = false;
+
+    adminApi.getSettings()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const overrides = data && typeof data === 'object' ? data : {};
+        const merged = buildInitialValues(overrides);
+        setValues(merged);
+        baseline.current.values = clone(merged);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error('Failed to load saved settings — showing defaults.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSettings(false);
+      });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const modifiedFieldsBySection = useMemo(() => {
     const map = {};
@@ -138,9 +172,10 @@ export default function Settings() {
     setTimeout(() => setHighlightFieldId(null), 2500);
   }
 
-  function handleSaveAll() {
+  async function handleSaveAll() {
     const now = new Date().toISOString();
     const newEntries = [];
+    const changedFields = {};
 
     for (const sectionId of Object.keys(modifiedFieldsBySection)) {
       const section = SETTINGS_SECTIONS.find((s) => s.id === sectionId);
@@ -149,6 +184,7 @@ export default function Settings() {
         if (!field) continue;
         const oldVal = baseline.current.values[sectionId]?.[fieldId];
         const newVal = values[sectionId][fieldId];
+        changedFields[fieldId] = newVal;
         newEntries.push({
           id: `aud-${Date.now()}-${sectionId}-${fieldId}`,
           settingLabel: field.label,
@@ -162,21 +198,34 @@ export default function Settings() {
       }
     }
 
-    if (newEntries.length) {
-      setAuditLog((prev) => [...newEntries, ...prev]);
+    setIsSaving(true);
+    try {
+      // Only the schema-driven field values are backed by the real
+      // /admin/settings key-value store — persist those genuinely.
+      if (Object.keys(changedFields).length > 0) {
+        await adminApi.updateSettings(changedFields);
+      }
+
+      if (newEntries.length) {
+        setAuditLog((prev) => [...newEntries, ...prev]);
+      }
+
+      baseline.current = {
+        values: clone(values),
+        privacyMatrix: clone(privacyMatrix),
+        accessMatrix: clone(accessMatrix),
+        featureMatrix: clone(featureMatrix),
+        automationRules: clone(automationRules),
+        customAutomations: clone(customAutomations),
+        connectedServices: clone(connectedServices),
+      };
+
+      toast.success(`${totalChanges} setting${totalChanges === 1 ? '' : 's'} saved successfully.`);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to save settings. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-
-    baseline.current = {
-      values: clone(values),
-      privacyMatrix: clone(privacyMatrix),
-      accessMatrix: clone(accessMatrix),
-      featureMatrix: clone(featureMatrix),
-      automationRules: clone(automationRules),
-      customAutomations: clone(customAutomations),
-      connectedServices: clone(connectedServices),
-    };
-
-    toast.success(`${totalChanges} setting${totalChanges === 1 ? '' : 's'} saved successfully.`);
   }
 
   function handleDiscardAll() {
@@ -247,6 +296,12 @@ export default function Settings() {
           <p className="text-fg-muted text-sm mt-0.5">
             Govern creators, brands, campaigns, AI systems, security, privacy, moderation, verification & marketplace economics from one workspace.
           </p>
+          {isLoadingSettings && (
+            <p className="text-xs text-fg-muted mt-1 flex items-center gap-1.5">
+              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Loading saved settings…
+            </p>
+          )}
         </div>
         <Button variant="secondary" size="sm" onClick={() => setAuditOpen(true)} icon={<span>🕓</span>}>
           Audit Trail & Version History
@@ -260,8 +315,10 @@ export default function Settings() {
             <p className="text-sm text-fg-muted">Review your changes before they take effect platform-wide.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" onClick={handleDiscardAll}>Discard</Button>
-            <Button size="sm" variant="primary" onClick={handleSaveAll}>Save All Changes</Button>
+            <Button size="sm" variant="ghost" onClick={handleDiscardAll} disabled={isSaving}>Discard</Button>
+            <Button size="sm" variant="primary" onClick={handleSaveAll} isLoading={isSaving}>
+              {isSaving ? 'Saving…' : 'Save All Changes'}
+            </Button>
           </div>
         </div>
       )}

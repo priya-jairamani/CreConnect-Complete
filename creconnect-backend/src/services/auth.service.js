@@ -51,7 +51,7 @@ async function login({ email, password }) {
       { model: AdminProfile,   as: 'adminProfile' },
     ],
   });
-
+  console.log('user', user);
   const passwordMatch = user && await bcrypt.compare(password, user.passwordHash);
   if (!user || !passwordMatch) throw new UnauthorizedError('Invalid email or password');
   if (user.status === 'SUSPENDED') throw new UnauthorizedError('Account suspended');

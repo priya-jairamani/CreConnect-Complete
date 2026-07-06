@@ -14,10 +14,11 @@ export function useAuth() {
   const loginAndRedirect = useCallback(
     async (credentials) => {
       const user = await auth.login(credentials);
-      const role = user.role?.toUpperCase();
+      const role = String(user?.role || '').trim().toUpperCase();
       if (role === 'CREATOR') navigate(ROUTES.CREATOR_DASHBOARD);
       else if (role === 'BRAND') navigate(ROUTES.BRAND_DASHBOARD);
       else if (role === 'ADMIN') navigate(ROUTES.ADMIN_DASHBOARD);
+      else console.warn('Unknown role after login:', user?.role); // surfaces silent redirect failures
     },
     [auth, navigate]
   );

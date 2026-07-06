@@ -243,4 +243,20 @@ router.get('/audit-logs', ctrl.getAuditLogs);
  */
 router.post('/users/:userId/enterprise-plan', ctrl.grantEnterprisePlan);
 
+// Operations — support tickets
+router.get('/tickets', ctrl.listTickets);
+router.post('/tickets', ctrl.createTicket);
+router.patch('/tickets/:id', ctrl.updateTicket);
+
+// Revenue & Payments
+router.get('/payments', ctrl.listPayments);
+router.get('/subscriptions', ctrl.listSubscriptions);
+router.get('/revenue', ctrl.getRevenueSummary);
+router.patch('/payments/:id/dispute', ctrl.markPaymentDisputed);
+router.patch('/payments/:id/resolve-dispute', ctrl.resolvePaymentDispute);
+
+// Platform settings
+router.get('/settings', ctrl.getSettings);
+router.patch('/settings', ctrl.updateSettings);
+
 module.exports = router;

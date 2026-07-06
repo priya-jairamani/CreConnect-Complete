@@ -52,4 +52,58 @@ const grantEnterprisePlan = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-module.exports = { listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs, grantEnterprisePlan };
+const listTickets = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listTickets(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const createTicket = async (req, res, next) => {
+  try { ok(res, await svc.createTicket(req.user.id, req.body), 'Ticket created'); } catch (e) { next(e); }
+};
+
+const updateTicket = async (req, res, next) => {
+  try { ok(res, await svc.updateTicket(req.params.id, req.body), 'Ticket updated'); } catch (e) { next(e); }
+};
+
+const listPayments = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listPayments(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const listSubscriptions = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listSubscriptions(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const getRevenueSummary = async (req, res, next) => {
+  try { ok(res, await svc.getRevenueSummary()); } catch (e) { next(e); }
+};
+
+const markPaymentDisputed = async (req, res, next) => {
+  try { ok(res, await svc.markPaymentDisputed(req.params.id, req.body.reason), 'Payment marked disputed'); } catch (e) { next(e); }
+};
+
+const resolvePaymentDispute = async (req, res, next) => {
+  try { ok(res, await svc.resolvePaymentDispute(req.params.id, req.body.resolution), 'Dispute resolved'); } catch (e) { next(e); }
+};
+
+const getSettings = async (req, res, next) => {
+  try { ok(res, await svc.getSettings()); } catch (e) { next(e); }
+};
+
+const updateSettings = async (req, res, next) => {
+  try { ok(res, await svc.updateSettings(req.body, req.user.id), 'Settings updated'); } catch (e) { next(e); }
+};
+
+module.exports = {
+  listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs, grantEnterprisePlan,
+  listTickets, createTicket, updateTicket,
+  listPayments, listSubscriptions, getRevenueSummary, markPaymentDisputed, resolvePaymentDispute,
+  getSettings, updateSettings,
+};

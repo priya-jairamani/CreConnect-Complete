@@ -40,8 +40,8 @@ export const DEMO_ACCOUNTS = [
 
 export function findDemoAccount(email, password) {
   return DEMO_ACCOUNTS.find(
-    (acc) => acc.email.toLowerCase() === String(email).trim().toLowerCase() && acc.password === password
-  ) ?? null;
+    (a) => a.email.toLowerCase() === email.toLowerCase().trim() && a.password === password
+  );
 }
 
 export function buildDemoSession(account) {
