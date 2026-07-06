@@ -11,6 +11,8 @@ import {
   VERIFICATION_TYPES_CREATOR,
   VERIFICATION_TYPES_BRAND,
 } from '@/services/verificationService';
+import ScoreRing from '@/components/common/ScoreRing';
+import { computeTrustScoreFromStatuses, maxTrustScoreForRole } from '@/utils/trustScore';
 
 /* ── Status meta ────────────────────────────────────────────────── */
 const STATUS_META = {
@@ -461,18 +463,26 @@ export default function VerificationCenter({ userType = 'creator' }) {
   const toast  = useToast();
   const types  = userType === 'brand' ? VERIFICATION_TYPES_BRAND : VERIFICATION_TYPES_CREATOR;
 
-  const [statuses, setStatuses] = useState({});     // { email: 'verified', nic: 'pending', ... }
+  const [statuses, setStatuses] = useState({});
+  const [trustScore, setTrustScore] = useState(0);
+  const [maxTrustScore, setMaxTrustScore] = useState(0);
   const [loading,  setLoading]  = useState(true);
-  const [modal,    setModal]    = useState(null);   // null | 'nic' | 'email' | 'phone'
+  const [modal,    setModal]    = useState(null);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
-    const { verifications } = await verificationService.getStatus();
+    const {
+      verifications,
+      trustScore: score,
+      maxTrustScore: maxScore,
+    } = await verificationService.getStatus();
     const map = {};
     verifications.forEach(({ type, status }) => { map[type] = status; });
     setStatuses(map);
+    setTrustScore(score ?? computeTrustScoreFromStatuses(map, userType));
+    setMaxTrustScore(maxScore || maxTrustScoreForRole(userType));
     setLoading(false);
-  }, []);
+  }, [userType]);
 
   useEffect(() => { loadStatus(); }, [loadStatus]);
 
@@ -488,15 +498,14 @@ export default function VerificationCenter({ userType = 'creator' }) {
 
   function handleVerifySuccess(id) {
     setStatuses((p) => ({ ...p, [id]: 'verified' }));
+    loadStatus();
     toast.success('Verification successful!');
   }
 
   const verifiedCount = types.filter((t) => statuses[t.id] === 'verified').length;
   const pendingCount  = types.filter((t) => ['pending', 'under_review'].includes(statuses[t.id])).length;
-  const totalTrust    = types.reduce((sum, t) => {
-    const pts = parseInt(t.trustImpact.replace(/[^0-9]/g, ''), 10) || 0;
-    return sum + (statuses[t.id] === 'verified' ? pts : 0);
-  }, 0);
+  const displayTrust  = trustScore || computeTrustScoreFromStatuses(statuses, userType);
+  const displayMax    = maxTrustScore || maxTrustScoreForRole(userType);
 
   return (
     <div className="space-y-6">
@@ -505,6 +514,11 @@ export default function VerificationCenter({ userType = 'creator' }) {
       {!loading && (
         <div className="flex items-center gap-6 p-5 rounded-2xl" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
           <ProgressRing verified={verifiedCount} total={types.length} />
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <ScoreRing value={Math.round((displayTrust / displayMax) * 100)} size={72} strokeWidth={6} />
+            <p className="text-[10px] text-fg-muted text-center leading-tight">Trust Score</p>
+            <p className="text-xs font-bold text-fg">{displayTrust}<span className="text-fg-muted font-normal">/{displayMax}</span></p>
+          </div>
           <div className="flex-1 space-y-1">
             <p className="font-semibold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
               {verifiedCount === types.length ? '🎉 Fully Verified!' : `${verifiedCount} of ${types.length} verifications complete`}
@@ -516,7 +530,9 @@ export default function VerificationCenter({ userType = 'creator' }) {
               }
             </p>
             <div className="flex items-center gap-4 pt-1 flex-wrap">
-              <span className="text-xs text-fg-muted">Trust Score Gained: <span className="text-success font-bold">+{totalTrust}</span></span>
+              <span className="text-xs text-fg-muted">
+                Based on completed verifications — each check adds to your trust score.
+              </span>
               {pendingCount > 0 && <span className="text-xs text-warning font-medium">{pendingCount} under review</span>}
             </div>
           </div>

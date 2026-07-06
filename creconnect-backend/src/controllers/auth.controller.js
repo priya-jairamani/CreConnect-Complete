@@ -54,8 +54,10 @@ const resetPassword = async (req, res, next) => {
 
 const sendOTP = async (req, res, next) => {
   try {
-    await authSvc.sendOTPService(req.body.email);
-    ok(res, {}, 'OTP sent');
+    const code = await authSvc.sendOTPService(req.body.email);
+    const data = {};
+    if (process.env.NODE_ENV !== 'production') data.devOtp = code;
+    ok(res, data, 'OTP sent');
   } catch (err) { next(err); }
 };
 

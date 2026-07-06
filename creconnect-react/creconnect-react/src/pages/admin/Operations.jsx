@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/useToast';
+import { useIsMockAdmin } from '@/hooks/useIsMockAdmin';
+import LiveOperations from '@/components/operations/LiveOperations';
 
 import OperationsCenterTab from '@/components/operations/OperationsCenterTab';
 import SupportHubTab from '@/components/operations/SupportHubTab';
@@ -44,6 +46,11 @@ const REGISTRATION_ACTION_MESSAGES = {
 };
 
 export default function Operations() {
+  const isMock = useIsMockAdmin();
+  return isMock ? <MockOperations /> : <LiveOperations />;
+}
+
+function MockOperations() {
   const toast = useToast();
   const [activeTab,           setActiveTab]           = useState('center');
   const [selectedTicket,      setSelectedTicket]      = useState(null);

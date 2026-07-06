@@ -13,6 +13,7 @@ export const TYPE_META = {
   REVIEW_RECEIVED:    { icon: '⭐', color: 'rgba(245,166,35,0.12)', category: 'system' },
   REPORT_UPDATE:      { icon: '🚩', color: 'rgba(245,166,35,0.12)', category: 'system' },
   SYSTEM:             { icon: '🔔', color: 'rgba(155,161,182,0.10)', category: 'system' },
+  ANNOUNCEMENT:       { icon: '📢', color: 'rgba(109,92,255,0.12)', category: 'system' },
   ACCOUNT_APPROVED:   { icon: '✅', color: 'rgba(22,179,100,0.12)', category: 'system' },
   ACCOUNT_REJECTED:   { icon: '⚠',  color: 'rgba(240,68,95,0.12)',  category: 'system' },
   REMINDER_DUE:       { icon: '🔔', color: 'rgba(245,166,35,0.12)', category: 'reminders' },

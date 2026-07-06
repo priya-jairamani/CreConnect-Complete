@@ -37,7 +37,7 @@ export default function AdminOtp() {
     setError(null);
     try {
       const code = otp.join('');
-      await authApi.verifyOtp({ email, otp: code, purpose: 'admin-login' });
+      await authApi.verifyOtp({ email, code });
 
       // Retrieve the auth tokens that were stored after password verification
       const pending = sessionStorage.getItem('admin_pending_auth');

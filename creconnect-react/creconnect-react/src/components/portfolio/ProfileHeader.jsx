@@ -4,6 +4,7 @@ import Badge from '@/components/common/Badge';
 import ScoreRing from '@/components/common/ScoreRing';
 import Button from '@/components/common/Button';
 import ShareProfileModal from '@/components/common/ShareProfileModal';
+import { resolveMediaUrl } from '@/utils/media';
 
 const SCORE_LABELS = [
   { key: 'creatorScore',       label: 'Creator Score'  },
@@ -47,7 +48,7 @@ export default function ProfileHeader({ profile, scores, onReport, isOwnProfile,
             {/* Avatar */}
             {profile.avatarUrl ? (
               <img
-                src={profile.avatarUrl}
+                src={resolveMediaUrl(profile.avatarUrl)}
                 alt={profile.displayName}
                 className="w-24 h-24 rounded-2xl object-cover flex-shrink-0 border-4"
                 style={{ borderColor: 'var(--surface)' }}

@@ -34,7 +34,7 @@ async function register({ email, password, role, ...profileData }) {
   }
 
   const user = await User.create(
-    { email, passwordHash, passwordHint: makePasswordHint(password), role: normalRole, status: 'APPROVED', emailToken, ...nestedData },
+    { email, passwordHash, passwordHint: makePasswordHint(password), role: normalRole, status: 'PENDING', emailToken, ...nestedData },
     { include }
   );
 
@@ -51,9 +51,10 @@ async function login({ email, password }) {
       { model: AdminProfile,   as: 'adminProfile' },
     ],
   });
-  console.log('user', user);
   const passwordMatch = user && await bcrypt.compare(password, user.passwordHash);
   if (!user || !passwordMatch) throw new UnauthorizedError('Invalid email or password');
+  if (user.status === 'PENDING') throw new UnauthorizedError('Account pending admin approval');
+  if (user.status === 'REJECTED') throw new UnauthorizedError('Account registration was rejected');
   if (user.status === 'SUSPENDED') throw new UnauthorizedError('Account suspended');
 
   // If this account was created before the passwordHint feature, save the hint now
@@ -99,7 +100,7 @@ async function me(userId) {
 async function verifyEmail(token) {
   const user = await User.findOne({ where: { emailToken: token } });
   if (!user) throw new AppError('Invalid verification token', 400);
-  await user.update({ emailVerified: true, emailToken: null, status: 'APPROVED' });
+  await user.update({ emailVerified: true, emailToken: null });
 }
 
 /* ─── Password hint helpers ─────────────────────────────────────────
@@ -219,6 +220,7 @@ async function resetPassword(token, newPassword) {
 async function sendOTPService(email) {
   const code = await createOTP(email);
   await sendOTP(email, code);
+  return code;
 }
 
 async function verifyOTPService(email, code) {

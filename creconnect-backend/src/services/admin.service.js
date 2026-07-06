@@ -1,12 +1,16 @@
 const { Op, fn, col } = require('sequelize');
 const {
   User, CreatorProfile, BrandProfile, Campaign, Report, AuditLog,
-  Ticket, Payment, Collaboration, Subscription, PlatformSetting,
+  Ticket, Payment, Collaboration, Subscription, PlatformSetting, CreatorMedia,
+  Notification, UserNotification,
 } = require('../models');
-const { NotFoundError } = require('../utils/errors');
+const { NotFoundError, AppError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const notificationsSvc = require('./notifications.service');
 const { getPlan } = require('../config/plans');
+const { normalizeUploadUrl } = require('../utils/media');
+const { computeTrustScoresForUsers } = require('../utils/trustScore');
+const { Verification } = require('../models');
 
 async function listUsers(query) {
   const { offset, limit, page } = parsePagination(query);
@@ -27,7 +31,13 @@ async function listUsers(query) {
     ],
   });
 
-  return { items: rows, total: count, page, limit };
+  const userIds = rows.map((u) => u.id);
+  const verificationRows = userIds.length
+    ? await Verification.findAll({ where: { userId: userIds } })
+    : [];
+
+  const items = computeTrustScoresForUsers(rows, verificationRows);
+  return { items, total: count, page, limit };
 }
 
 async function updateUserStatus(id, status) {
@@ -89,7 +99,78 @@ async function announce(message, audience) {
   // 'ALL' → no role filter, every user receives it
   const users   = await User.findAll({ where, attributes: ['id'] });
   const userIds = users.map((u) => u.id);
-  return notificationsSvc.push(userIds, message, aud);
+  return notificationsSvc.push(userIds, message, aud, 'ANNOUNCEMENT');
+}
+
+const AUDIENCE_MAP = {
+  ALL: 'ALL',
+  CREATORS: 'CREATORS',
+  CREATOR: 'CREATORS',
+  BRANDS: 'BRANDS',
+  BRAND: 'BRANDS',
+  ADMINS: 'ADMINS',
+  ADMIN: 'ADMINS',
+};
+
+function normalizeAudience(audience) {
+  const key = String(audience || 'ALL').toUpperCase();
+  return AUDIENCE_MAP[key] || 'ALL';
+}
+
+function audienceUserFilter(audience) {
+  const aud = normalizeAudience(audience);
+  if (aud === 'CREATORS') return { role: 'CREATOR' };
+  if (aud === 'BRANDS') return { role: 'BRAND' };
+  if (aud === 'ADMINS') return { role: 'ADMIN' };
+  return {};
+}
+
+async function listNotifications(query) {
+  const { offset, limit, page } = parsePagination(query);
+  const where = {};
+  if (query.status) where.status = query.status.toUpperCase();
+  if (query.audience) where.audience = normalizeAudience(query.audience);
+
+  const { rows, count } = await Notification.findAndCountAll({
+    where,
+    offset,
+    limit,
+    order: [['createdAt', 'DESC']],
+  });
+
+  const items = await Promise.all(rows.map(async (n) => {
+    const recipientCount = await UserNotification.count({ where: { notificationId: n.id } });
+    return { ...n.toJSON(), recipientCount };
+  }));
+
+  return { items, total: count, page, limit };
+}
+
+async function listFailedNotifications(query) {
+  return listNotifications({ ...query, status: 'FAILED' });
+}
+
+async function pushNotification({ message, audience, type, deliveryMode, scheduledAt }) {
+  const msg = (message || '').trim();
+  if (!msg) throw new AppError('Message is required', 400);
+
+  const aud = normalizeAudience(audience);
+  const notifType = (type || 'ANNOUNCEMENT').toUpperCase();
+
+  if (String(deliveryMode || '').toUpperCase() === 'SCHEDULED' && scheduledAt) {
+    return Notification.create({
+      message: msg,
+      type: notifType,
+      audience: aud,
+      deliveryMode: 'SCHEDULED',
+      scheduledAt: new Date(scheduledAt),
+      status: 'PENDING',
+    });
+  }
+
+  const users = await User.findAll({ where: audienceUserFilter(aud), attributes: ['id'] });
+  const userIds = users.map((u) => u.id);
+  return notificationsSvc.push(userIds, msg, aud, notifType);
 }
 
 async function getAuditLogs(query) {
@@ -239,9 +320,96 @@ async function updateSettings(updates, adminId) {
   return getSettings();
 }
 
+/* ── Creator content moderation (creator_media) ─────────────────────── */
+
+const CONTENT_INCLUDE = [{
+  model: CreatorProfile,
+  as: 'creator',
+  attributes: ['id', 'displayName', 'username', 'avatarUrl'],
+  include: [{ model: User, as: 'user', attributes: ['id', 'email'] }],
+}];
+
+function serializeContentItem(row) {
+  const json = row.toJSON ? row.toJSON() : row;
+  const creator = json.creator;
+  return {
+    id:           json.id,
+    title:        json.title,
+    description:  json.description,
+    type:         json.fileType || json.contentType || 'media',
+    platform:     json.platform,
+    status:       json.moderationStatus,
+    moderationStatus: json.moderationStatus,
+    fileUrl:      normalizeUploadUrl(json.fileUrl),
+    thumbnailUrl: normalizeUploadUrl(json.thumbnailUrl || json.fileUrl),
+    fileType:     json.fileType,
+    visibility:   json.visibility,
+    createdAt:    json.createdAt,
+    creator: creator ? {
+      id: creator.id,
+      displayName: creator.displayName,
+      username: creator.username,
+      avatarUrl: normalizeUploadUrl(creator.avatarUrl),
+      email: creator.user?.email,
+      user: creator.user,
+      creatorProfile: { displayName: creator.displayName, username: creator.username },
+    } : null,
+  };
+}
+
+async function listContent(query) {
+  const { offset, limit, page } = parsePagination(query);
+  const where = {};
+  if (query.status && query.status !== 'all') {
+    where.moderationStatus = query.status.toUpperCase();
+  }
+
+  const creatorWhere = {};
+  if (query.q) {
+    creatorWhere[Op.or] = [
+      { displayName: { [Op.iLike]: `%${query.q}%` } },
+      { username: { [Op.iLike]: `%${query.q}%` } },
+    ];
+  }
+
+  const { rows, count } = await CreatorMedia.findAndCountAll({
+    where,
+    offset,
+    limit,
+    order: [['createdAt', 'DESC']],
+    include: [{
+      ...CONTENT_INCLUDE[0],
+      where: Object.keys(creatorWhere).length ? creatorWhere : undefined,
+      required: !!query.q,
+    }],
+    distinct: true,
+  });
+
+  return { items: rows.map(serializeContentItem), total: count, page, limit };
+}
+
+async function moderateContent(id, action) {
+  const item = await CreatorMedia.findByPk(id);
+  if (!item) throw new NotFoundError('Content not found');
+
+  const statusMap = {
+    approve: 'APPROVED', approved: 'APPROVED',
+    reject: 'REJECTED', rejected: 'REJECTED',
+    pending: 'PENDING',
+  };
+  const moderationStatus = statusMap[String(action || '').toLowerCase()];
+  if (!moderationStatus) throw new AppError('Invalid moderation action', 400);
+
+  await item.update({ moderationStatus });
+  const reloaded = await item.reload({ include: CONTENT_INCLUDE });
+  return serializeContentItem(reloaded);
+}
+
 module.exports = {
   listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs,
   listTickets, createTicket, updateTicket,
   listPayments, listSubscriptions, markPaymentDisputed, resolvePaymentDispute, getRevenueSummary,
   getSettings, updateSettings,
+  listContent, moderateContent,
+  listNotifications, listFailedNotifications, pushNotification,
 };

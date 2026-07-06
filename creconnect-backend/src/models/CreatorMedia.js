@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
     size:         { type: DataTypes.INTEGER },
     tags:         { type: DataTypes.ARRAY(DataTypes.STRING), defaultValue: [] },
     visibility:   { type: DataTypes.ENUM('PUBLIC','PRIVATE'), defaultValue: 'PUBLIC' },
+    moderationStatus: {
+      type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
+      defaultValue: 'PENDING',
+    },
     isFeatured:   { type: DataTypes.BOOLEAN, defaultValue: false },
     views:        { type: DataTypes.INTEGER, defaultValue: 0 },
     likes:        { type: DataTypes.INTEGER, defaultValue: 0 },

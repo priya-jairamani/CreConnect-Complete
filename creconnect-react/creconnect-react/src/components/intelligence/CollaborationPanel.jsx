@@ -3,6 +3,7 @@ import StatCard from '@/components/common/StatCard';
 import Badge from '@/components/common/Badge';
 import EmptyState from '@/components/common/EmptyState';
 import { formatPKR, timeAgo } from '@/utils/formatters';
+import { resolveMediaUrl } from '@/utils/media';
 import { seededRandom } from '@/utils/mockAnalytics';
 
 function groupByBrand(collaborations) {
@@ -108,7 +109,7 @@ export function BrandRelationships({ collaborations, seed }) {
           <div key={g.brandId} className="rounded-xl p-4 space-y-3" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
             <div className="flex items-center gap-3">
               {g.logoUrl ? (
-                <img src={g.logoUrl} alt={g.brandName} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                <img src={resolveMediaUrl(g.logoUrl)} alt={g.brandName} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
               ) : (
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white text-sm flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6d5cff, #4c2dd1)' }}>
                   {initials}

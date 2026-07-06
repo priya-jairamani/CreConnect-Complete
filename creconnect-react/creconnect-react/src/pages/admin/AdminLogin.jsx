@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import Input from '@/components/common/Input';
 import Button from '@/components/common/Button';
-import { authApi } from '@/api/auth.api';
 import { useAuthContext } from '@/context/AuthContext';
 
 export default function AdminLogin() {
@@ -20,31 +19,18 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
     try {
-      // First authenticate with password — store tokens for after OTP
-      const { data } = await authApi.login({ email, password: pass });
-      const loginData = data?.user ? data : null;
-      if (loginData) {
-        sessionStorage.setItem('admin_pending_auth', JSON.stringify(loginData));
+      const user = await auth.login({ email, password: pass });
+      if (String(user?.role || '').toUpperCase() !== 'ADMIN') {
+        await auth.logout();
+        setError('This account does not have admin access.');
+        return;
       }
-      // Then request OTP for 2FA
-      await authApi.sendOtp({ email, purpose: 'admin-login' });
-      navigate(ROUTES.ADMIN_OTP, { state: { email } });
+      navigate(ROUTES.ADMIN_DASHBOARD);
     } catch (err) {
-      sessionStorage.removeItem('admin_pending_auth');
-      // Backend unreachable — fall back to demo admin account, skipping OTP
-      if (err?.offline) {
-        try {
-          await auth.login({ email, password: pass });
-          navigate(ROUTES.ADMIN_DASHBOARD);
-          return;
-        } catch (demoErr) {
-          setError(demoErr?.message || 'Invalid admin credentials');
-          setIsLoading(false);
-          return;
-        }
-      }
       setError(err?.message || 'Invalid admin credentials');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -76,6 +62,18 @@ export default function AdminLogin() {
           <span className="text-warning">This area is restricted. Unauthorised access is prohibited.</span>
         </div>
 
+        <div
+          className="px-4 py-3 rounded-xl text-xs space-y-1"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+        >
+          <p className="text-fg-muted">
+            <span className="text-fg font-medium">Demo admin</span> — admin@creconnect.pk / Admin@12345 (mock data)
+          </p>
+          <p className="text-fg-muted">
+            <span className="text-fg font-medium">Live admin</span> — admin@creconnect.com / Admin@12345 (database)
+          </p>
+        </div>
+
         {error && (
           <div
             className="px-4 py-3 rounded-xl text-sm text-danger"
@@ -93,7 +91,7 @@ export default function AdminLogin() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@creconnect.com"
+              placeholder="admin@creconnect.pk"
               required
             />
             <Input

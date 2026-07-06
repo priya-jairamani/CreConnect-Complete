@@ -99,9 +99,9 @@ router.patch('/users/:id/status', ctrl.updateUserStatus);
  */
 router.get('/campaigns', ctrl.listCampaigns);
 
-// Content moderation stub — campaigns/profiles serve as the moderation surface
-router.get('/content',          (req, res) => res.json({ success: true, data: [], meta: { page: 1, limit: 20, total: 0, pages: 0 } }));
-router.patch('/content/:id/:action', (req, res) => res.json({ success: true, data: {}, message: 'Content moderated' }));
+// Content moderation — creator portfolio / media uploads
+router.get('/content', ctrl.listContent);
+router.patch('/content/:id/:action', ctrl.moderateContent);
 
 /**
  * @swagger
@@ -258,5 +258,17 @@ router.patch('/payments/:id/resolve-dispute', ctrl.resolvePaymentDispute);
 // Platform settings
 router.get('/settings', ctrl.getSettings);
 router.patch('/settings', ctrl.updateSettings);
+
+// Identity / document verification queue
+router.get('/verifications', ctrl.listVerifications);
+router.get('/verifications/:id', ctrl.getVerification);
+router.patch('/verifications/:id/approve', ctrl.approveVerification);
+router.patch('/verifications/:id/reject', ctrl.rejectVerification);
+router.patch('/verifications/:id/request-reupload', ctrl.requestReuploadVerification);
+
+// Platform notifications (broadcast center)
+router.get('/notifications/failed', ctrl.listFailedNotifications);
+router.get('/notifications', ctrl.listNotifications);
+router.post('/notifications/push', ctrl.pushNotification);
 
 module.exports = router;

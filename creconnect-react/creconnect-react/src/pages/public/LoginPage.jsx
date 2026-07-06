@@ -217,7 +217,7 @@ export default function LoginPage() {
               {[
                 { label: 'Brand',   email: 'techwave@creconnect.com', pass: 'Brand@123'   },
                 { label: 'Creator', email: 'laiba@creconnect.com',    pass: 'Creator@123' },
-                { label: 'Admin',   email: 'admin@creconnect.com',    pass: 'Admin@123'   },
+                { label: 'Admin (demo)', email: 'admin@creconnect.pk',    pass: 'Admin@12345' },
               ].map(({ label, email: e, pass: p }) => (
                 <button
                   key={label}

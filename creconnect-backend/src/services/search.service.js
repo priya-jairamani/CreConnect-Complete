@@ -1,6 +1,33 @@
 const { Op } = require('sequelize');
-const { CreatorProfile, BrandProfile, Campaign, SocialPlatform, User } = require('../models');
+const { CreatorProfile, BrandProfile, Campaign, SocialPlatform, User, Verification } = require('../models');
 const { parsePagination } = require('../utils/pagination');
+const { computeTrustScore } = require('../utils/trustScore');
+
+async function enrichProfilesWithTrustScore(profiles, defaultRole) {
+  if (!profiles.length) return [];
+  const userIds = profiles.map((p) => p.userId);
+  const [users, verifications] = await Promise.all([
+    User.findAll({ where: { id: userIds }, attributes: ['id', 'role', 'emailVerified'] }),
+    Verification.findAll({ where: { userId: userIds } }),
+  ]);
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+  const verifByUser = verifications.reduce((acc, row) => {
+    if (!acc[row.userId]) acc[row.userId] = [];
+    acc[row.userId].push(row);
+    return acc;
+  }, {});
+
+  return profiles.map((profile) => {
+    const json = profile.toJSON ? profile.toJSON() : profile;
+    const user = userMap[json.userId];
+    const trust = computeTrustScore({
+      role: user?.role || defaultRole,
+      verifications: verifByUser[json.userId] || [],
+      emailVerified: user?.emailVerified,
+    });
+    return { ...json, ...trust };
+  });
+}
 
 async function searchCreators(query) {
   const { offset, limit, page } = parsePagination(query);
@@ -35,10 +62,9 @@ async function searchCreators(query) {
     ],
   });
 
-  return { items: rows, total: count, page, limit };
+  const items = await enrichProfilesWithTrustScore(rows, 'CREATOR');
+  return { items, total: count, page, limit };
 }
-
-async function searchBrands(query) {
   const { offset, limit, page } = parsePagination(query);
   const where = { '$user.status$': 'APPROVED' };
   if (query.q)        where.companyName = { [Op.iLike]: `%${query.q}%` };
@@ -53,7 +79,8 @@ async function searchBrands(query) {
     include: [{ model: User, as: 'user', attributes: ['createdAt'] }],
   });
 
-  return { items: rows, total: count, page, limit };
+  const items = await enrichProfilesWithTrustScore(rows, 'BRAND');
+  return { items, total: count, page, limit };
 }
 
 async function searchCampaigns(query) {

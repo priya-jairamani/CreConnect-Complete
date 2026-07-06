@@ -50,5 +50,6 @@ export const ROUTES = {
   ADMIN_TRUST_SAFETY:   '/admin/trust-safety',
   ADMIN_REVENUE:        '/admin/revenue-payments',
   ADMIN_OPERATIONS:     '/admin/operations',
+  ADMIN_NOTIFICATIONS:  '/admin/notifications',
   ADMIN_SETTINGS:       '/admin/settings',
 };

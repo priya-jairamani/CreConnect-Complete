@@ -74,6 +74,7 @@ import AdminReports       from '@/pages/admin/AdminReports';
 import TrustSafety        from '@/pages/admin/TrustSafety';
 import RevenuePayments    from '@/pages/admin/RevenuePayments';
 import Operations         from '@/pages/admin/Operations';
+import AdminNotifications from '@/pages/admin/AdminNotifications';
 import Settings           from '@/pages/admin/Settings';
 
 const wrap = (element, roles) => (
@@ -170,6 +171,7 @@ const router = createBrowserRouter([
       { path: ROUTES.ADMIN_TRUST_SAFETY, element: <TrustSafety /> },
       { path: ROUTES.ADMIN_REVENUE,   element: <RevenuePayments /> },
       { path: ROUTES.ADMIN_OPERATIONS, element: <Operations /> },
+      { path: ROUTES.ADMIN_NOTIFICATIONS, element: <AdminNotifications /> },
       { path: ROUTES.ADMIN_SETTINGS,  element: <Settings /> },
     ],
   },

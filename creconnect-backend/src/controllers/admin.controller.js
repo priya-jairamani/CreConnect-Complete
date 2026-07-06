@@ -1,4 +1,5 @@
 const svc = require('../services/admin.service');
+const verificationSvc = require('../services/verification.service');
 const subscriptionsSvc = require('../services/subscriptions.service');
 const { ok, paginated } = require('../utils/response');
 
@@ -101,9 +102,74 @@ const updateSettings = async (req, res, next) => {
   try { ok(res, await svc.updateSettings(req.body, req.user.id), 'Settings updated'); } catch (e) { next(e); }
 };
 
+const listVerifications = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await verificationSvc.listForAdmin(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const getVerification = async (req, res, next) => {
+  try { ok(res, await verificationSvc.getById(req.params.id)); } catch (e) { next(e); }
+};
+
+const approveVerification = async (req, res, next) => {
+  try {
+    ok(res, await verificationSvc.approve(req.params.id, req.user.id), 'Verification approved');
+  } catch (e) { next(e); }
+};
+
+const rejectVerification = async (req, res, next) => {
+  try {
+    ok(res, await verificationSvc.reject(req.params.id, req.user.id, req.body.reason), 'Verification rejected');
+  } catch (e) { next(e); }
+};
+
+const requestReuploadVerification = async (req, res, next) => {
+  try {
+    ok(res, await verificationSvc.requestReupload(req.params.id, req.user.id, req.body.note), 'Re-upload requested');
+  } catch (e) { next(e); }
+};
+
+const listContent = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listContent(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const moderateContent = async (req, res, next) => {
+  try {
+    ok(res, await svc.moderateContent(req.params.id, req.params.action), 'Content moderated');
+  } catch (e) { next(e); }
+};
+
+const listNotifications = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listNotifications(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const listFailedNotifications = async (req, res, next) => {
+  try {
+    const { items, total, page, limit } = await svc.listFailedNotifications(req.query);
+    paginated(res, items, { page, limit, total });
+  } catch (e) { next(e); }
+};
+
+const pushNotification = async (req, res, next) => {
+  try {
+    ok(res, await svc.pushNotification(req.body), 'Notification sent');
+  } catch (e) { next(e); }
+};
+
 module.exports = {
   listUsers, updateUserStatus, listCampaigns, listReports, resolveReport, announce, getAuditLogs, grantEnterprisePlan,
   listTickets, createTicket, updateTicket,
   listPayments, listSubscriptions, getRevenueSummary, markPaymentDisputed, resolvePaymentDispute,
   getSettings, updateSettings,
+  listVerifications, getVerification, approveVerification, rejectVerification, requestReuploadVerification,
+  listContent, moderateContent,
+  listNotifications, listFailedNotifications, pushNotification,
 };

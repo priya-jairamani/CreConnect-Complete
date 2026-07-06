@@ -4,6 +4,15 @@ import Button from '@/components/common/Button';
 import Skeleton from '@/components/common/Skeleton';
 import { adminApi } from '@/api/admin.api';
 
+function displayName(user) {
+  return (
+    user?.creatorProfile?.displayName
+    || user?.brandProfile?.companyName
+    || user?.email
+    || 'Unknown'
+  );
+}
+
 export default function AdminReports() {
   const [reports,   setReports]   = useState([]);
   const [filter,    setFilter]    = useState('all');
@@ -23,7 +32,7 @@ export default function AdminReports() {
     try {
       await adminApi.resolveReport(id, 'resolve', { resolution: 'Resolved by admin' });
       setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: 'RESOLVED' } : r));
-    } catch {}
+    } catch { /* ignore */ }
     setResolving(null);
   };
 
@@ -31,16 +40,25 @@ export default function AdminReports() {
     setResolving(id);
     try {
       await adminApi.resolveReport(id, 'dismiss', { resolution: 'Dismissed by admin' });
-      setReports((prev) => prev.filter((r) => r.id !== id));
-    } catch {}
+      setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: 'DISMISSED' } : r));
+    } catch { /* ignore */ }
     setResolving(null);
   };
 
+function statusMeta(status) {
+  switch (status?.toUpperCase()) {
+    case 'OPEN':      return { key: 'open', variant: 'warning', label: 'Open' };
+    case 'RESOLVED':  return { key: 'resolved', variant: 'success', label: 'Resolved' };
+    case 'DISMISSED': return { key: 'dismissed', variant: 'neutral', label: 'Dismissed' };
+    default:          return { key: 'open', variant: 'neutral', label: status || 'Unknown' };
+  }
+}
+
   const visible = filter === 'all'
     ? reports
-    : reports.filter((r) => r.status?.toLowerCase() === filter);
+    : reports.filter((r) => statusMeta(r.status).key === filter);
 
-  const pendingCount = reports.filter((r) => r.status?.toUpperCase() === 'PENDING').length;
+  const openCount = reports.filter((r) => r.status?.toUpperCase() === 'OPEN').length;
 
   return (
     <div className="p-6 space-y-6">
@@ -52,7 +70,7 @@ export default function AdminReports() {
           <p className="text-fg-muted text-sm mt-0.5">Review and resolve violation reports submitted by users.</p>
         </div>
         <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--surface-2)' }}>
-          {['all', 'pending', 'resolved'].map((t) => (
+          {['all', 'open', 'resolved', 'dismissed'].map((t) => (
             <button
               key={t}
               onClick={() => setFilter(t)}
@@ -68,14 +86,14 @@ export default function AdminReports() {
         </div>
       </header>
 
-      {pendingCount > 0 && (
+      {openCount > 0 && (
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm"
           style={{ background: 'rgba(245,166,35,0.08)', border: '1px solid rgba(245,166,35,0.2)' }}
         >
           <span>⚠</span>
           <span className="text-warning">
-            {pendingCount} report{pendingCount !== 1 ? 's' : ''} pending review
+            {openCount} open report{openCount !== 1 ? 's' : ''} awaiting review
           </span>
         </div>
       )}
@@ -93,15 +111,10 @@ export default function AdminReports() {
           : visible.length === 0
             ? <div className="px-5 py-10 text-center text-fg-muted text-sm">No reports in this category.</div>
             : visible.map((r) => {
-                const reporterName = r.reporter?.creatorProfile?.displayName
-                  || r.reporter?.brandProfile?.companyName
-                  || r.reporter?.email
-                  || 'Unknown';
-                const reportedName = r.reported?.creatorProfile?.displayName
-                  || r.reported?.brandProfile?.companyName
-                  || r.reported?.email
-                  || 'Unknown';
+                const reporterName = displayName(r.reporter);
+                const reportedName = displayName(r.reportedUser);
                 const isResolving = resolving === r.id;
+                const isOpen = r.status?.toUpperCase() === 'OPEN';
 
                 return (
                   <div
@@ -111,20 +124,22 @@ export default function AdminReports() {
                   >
                     <span className="text-fg font-medium truncate">{reporterName}</span>
                     <span className="text-fg-muted truncate">{reportedName}</span>
-                    <span className="text-fg-muted text-xs">{r.type?.replace(/_/g, ' ')}</span>
+                    <span className="text-fg-muted text-xs">{r.violationType?.replace(/_/g, ' ')}</span>
                     <span className="text-fg-muted text-xs">
                       {new Date(r.createdAt).toLocaleDateString('en-PK', { month: 'short', day: 'numeric' })}
                     </span>
-                    <Badge status={r.status?.toLowerCase()} />
+                    <Badge variant={statusMeta(r.status).variant} label={statusMeta(r.status).label} />
                     <div className="flex gap-2">
-                      {r.status?.toUpperCase() !== 'RESOLVED' && (
+                      {isOpen && (
                         <Button variant="primary" size="xs" disabled={isResolving} onClick={() => resolve(r.id)}>
                           Resolve
                         </Button>
                       )}
-                      <Button variant="ghost" size="xs" disabled={isResolving} onClick={() => dismiss(r.id)}>
-                        Dismiss
-                      </Button>
+                      {isOpen && (
+                        <Button variant="ghost" size="xs" disabled={isResolving} onClick={() => dismiss(r.id)}>
+                          Dismiss
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

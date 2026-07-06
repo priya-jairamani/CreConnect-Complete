@@ -305,6 +305,8 @@ const PAYMENT_HISTORY = [
 /* ── Convenience wrappers ────────────────────────────────────────────── */
 const list = (data, total) => ({ data, pagination: { total: total ?? data.length, page: 1, limit: 20 } });
 
+import { getAdminMockResponse } from './mockAdminApiResponses';
+
 /* ════════════════════════════════════════════════════════════════════════ */
 const SPECIFIC_MOCKS = [
   // ── Creator profile & stats ─────────────────────────────────────────
@@ -336,7 +338,6 @@ const SPECIFIC_MOCKS = [
   // ── Analytics ────────────────────────────────────────────────────────
   { method: 'get', pattern: /\/analytics\/creator$/,          data: DEMO_CREATOR_ANALYTICS },
   { method: 'get', pattern: /\/analytics\/brand$/,            data: DEMO_BRAND_ANALYTICS },
-  { method: 'get', pattern: /\/analytics\/admin$/,            data: { metrics: { totalUsers: 18420 } } },
 
   // ── Campaigns ────────────────────────────────────────────────────────
   { method: 'get', pattern: /\/campaigns\/[^/]+\/applications/, data: list([]) },
@@ -384,8 +385,6 @@ const SPECIFIC_MOCKS = [
   { method: 'get', pattern: /\/social\/[^/]+\/auth-url/,      data: { url: null, configured: false } },
   { method: 'get', pattern: /\/social\/platforms\/[^/]+\/posts/, data: [] },
 
-  // ── Admin ─────────────────────────────────────────────────────────────
-  { method: 'get', pattern: /\/admin\/(users|content|reports|audit-logs)/, data: list([]) },
 ];
 
 /**
@@ -395,6 +394,9 @@ const SPECIFIC_MOCKS = [
 export function getMockApiResponse(method, url) {
   const m    = (method || 'get').toLowerCase();
   const path = url.split('?')[0];
+
+  const adminMock = getAdminMockResponse(method, url);
+  if (adminMock) return adminMock;
 
   for (const mock of SPECIFIC_MOCKS) {
     if (mock.method === m && mock.pattern.test(path)) {

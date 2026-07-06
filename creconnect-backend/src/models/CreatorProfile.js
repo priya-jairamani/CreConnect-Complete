@@ -65,7 +65,7 @@ module.exports = (sequelize, DataTypes) => {
     CreatorProfile.hasMany(models.SocialPlatform,   { foreignKey: 'creatorId', as: 'platforms',      onDelete: 'CASCADE' });
     CreatorProfile.hasMany(models.Collaboration,    { foreignKey: 'creatorId', as: 'collaborations' });
     CreatorProfile.hasMany(models.Application,      { foreignKey: 'creatorId', as: 'applications' });
-    CreatorProfile.hasMany(models.Conversation,     { foreignKey: 'creatorId', as: 'conversations' });
+    CreatorProfile.hasMany(models.CreatorMedia,    { foreignKey: 'creatorId', as: 'media', onDelete: 'CASCADE' });
   };
 
   return CreatorProfile;

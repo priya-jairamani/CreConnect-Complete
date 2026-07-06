@@ -33,6 +33,7 @@ const COMMANDS_BY_ROLE = {
     { icon: '🛡', label: 'Trust & Safety',   to: ROUTES.ADMIN_TRUST_SAFETY, keywords: 'fraud disputes investigations risk moderation' },
     { icon: '💰', label: 'Revenue & Payments', to: ROUTES.ADMIN_REVENUE, keywords: 'revenue payments finance transactions payouts escrow' },
     { icon: '🧭', label: 'Operations', to: ROUTES.ADMIN_OPERATIONS, keywords: 'operations support tickets incidents activity ai copilot command center' },
+    { icon: '🔔', label: 'Notifications', to: ROUTES.ADMIN_NOTIFICATIONS, keywords: 'notifications broadcast announce push inbox alerts' },
     { icon: '⚙', label: 'Settings',         to: ROUTES.ADMIN_SETTINGS,  keywords: 'config governance platform configuration creator system brand system marketplace rules trust safety privacy compliance ai automation security integrations billing revenue' },
   ],
 };

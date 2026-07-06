@@ -193,7 +193,11 @@ export default function BrandSettings() {
   }, []);
 
   // Derived intel / mock data
-  const intel = useMemo(() => getBrandIntel(brand ?? {}), [brand]);
+  const intel = useMemo(() => {
+    const base = getBrandIntel(brand ?? {});
+    if (brand?.trustScore != null) return { ...base, trustScore: brand.trustScore };
+    return base;
+  }, [brand]);
   const healthScore = useMemo(() => getBrandHealthScore(brand ?? {}, intel), [brand, intel]);
   const profileCompletion = useMemo(() => (formState ? getProfileCompletion(formState.companyProfile) : 0), [formState]);
   const verificationStatus = brand?.isVerified ? 'verified' : 'pending';

@@ -66,11 +66,11 @@ export default function CampaignManagement() {
         ]);
         if (cancelled) return;
         setCounts({
-          all:       all.data?.meta?.total ?? 0,
-          draft:     draft.data?.meta?.total ?? 0,
-          published: published.data?.meta?.total ?? 0,
-          paused:    paused.data?.meta?.total ?? 0,
-          completed: completed.data?.meta?.total ?? 0,
+          all:       all.meta?.total ?? 0,
+          draft:     draft.meta?.total ?? 0,
+          published: published.meta?.total ?? 0,
+          paused:    paused.meta?.total ?? 0,
+          completed: completed.meta?.total ?? 0,
         });
       } catch {
         if (!cancelled) setCounts(null);
@@ -88,10 +88,10 @@ export default function CampaignManagement() {
     if (statusFilter !== 'ALL') params.status = statusFilter;
 
     adminApi.getCampaigns(params)
-      .then(({ data }) => {
+      .then((res) => {
         if (cancelled) return;
-        setCampaigns(Array.isArray(data?.data) ? data.data : []);
-        setMeta(data?.meta ?? null);
+        setCampaigns(Array.isArray(res.data) ? res.data : []);
+        setMeta(res.meta ?? null);
       })
       .catch(() => {
         if (cancelled) return;

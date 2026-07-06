@@ -1,5 +1,6 @@
 const { CreatorProfile, BrandProfile } = require('../models');
 const { uploadToCloudinary } = require('../middleware/upload');
+const { normalizeUploadUrl } = require('../utils/media');
 const { ok } = require('../utils/response');
 const { ForbiddenError } = require('../utils/errors');
 
@@ -11,7 +12,7 @@ const uploadAvatar = async (req, res, next) => {
       resource_type: 'image',
       transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
     });
-    const url = result.secure_url;
+    const url = normalizeUploadUrl(result.secure_url);
 
     if (req.user.role === 'CREATOR') {
       await CreatorProfile.update({ avatarUrl: url }, { where: { userId: req.user.id } });
@@ -31,7 +32,7 @@ const uploadBanner = async (req, res, next) => {
       resource_type: 'image',
       transformation: [{ width: 1200, height: 400, crop: 'fill' }],
     });
-    const url = result.secure_url;
+    const url = normalizeUploadUrl(result.secure_url);
 
     if (req.user.role === 'BRAND') {
       await BrandProfile.update({ bannerUrl: url }, { where: { userId: req.user.id } });

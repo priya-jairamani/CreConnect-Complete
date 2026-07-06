@@ -3,6 +3,8 @@ const { NotFoundError, ForbiddenError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const stripe = require('../config/stripe');
 const { FRONTEND_URL } = require('../config/env');
+const { normalizeUploadUrl } = require('../utils/media');
+const verificationSvc = require('./verification.service');
 
 const CREATOR_INCLUDE = [
   { model: User,           as: 'user',      attributes: ['id', 'email', 'status', 'createdAt'] },
@@ -12,7 +14,8 @@ const CREATOR_INCLUDE = [
 async function getMyProfile(userId) {
   const profile = await CreatorProfile.findOne({ where: { userId }, include: CREATOR_INCLUDE });
   if (!profile) throw new NotFoundError('Creator profile not found');
-  return profile;
+  const trust = await verificationSvc.getTrustForUser(userId);
+  return { ...profile.toJSON(), ...trust };
 }
 
 async function updateMyProfile(userId, data) {
@@ -161,7 +164,8 @@ async function getPublicProfile(username) {
     include: [...CREATOR_INCLUDE],
   });
   if (!profile) throw new NotFoundError('Creator not found');
-  return profile;
+  const trust = await verificationSvc.getTrustForUser(profile.userId);
+  return { ...profile.toJSON(), ...trust };
 }
 
 async function getMedia(userId, params = {}) {
@@ -176,7 +180,7 @@ async function getMedia(userId, params = {}) {
 // Public: any authenticated user (brands, creators) can view another creator's public media
 async function getPublicMedia(creatorProfileId) {
   return CreatorMedia.findAll({
-    where: { creatorId: creatorProfileId, visibility: 'PUBLIC' },
+    where: { creatorId: creatorProfileId, visibility: 'PUBLIC', moderationStatus: 'APPROVED' },
     order: [['isFeatured','DESC'],['createdAt','DESC']],
     limit: 30,
   });
@@ -185,8 +189,10 @@ async function getPublicMedia(creatorProfileId) {
 async function addMedia(userId, data) {
   const profile = await CreatorProfile.findOne({ where: { userId } });
   if (!profile) throw new NotFoundError('Creator profile not found');
-  const clean = { ...data, creatorId: profile.id };
+  const clean = { ...data, creatorId: profile.id, moderationStatus: 'PENDING' };
   if (clean.visibility) clean.visibility = clean.visibility.toUpperCase();
+  if (clean.fileUrl) clean.fileUrl = normalizeUploadUrl(clean.fileUrl);
+  if (clean.thumbnailUrl) clean.thumbnailUrl = normalizeUploadUrl(clean.thumbnailUrl);
   return CreatorMedia.create(clean);
 }
 

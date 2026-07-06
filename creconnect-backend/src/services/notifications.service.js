@@ -49,8 +49,13 @@ async function createForUser(userId, message, type = 'SYSTEM') {
   return notification;
 }
 
-async function push(userIds, message, audience = 'ALL') {
-  const notification = await Notification.create({ message, audience, status: 'SENT' });
+async function push(userIds, message, audience = 'ALL', type = 'SYSTEM') {
+  const notification = await Notification.create({
+    message,
+    type: type || 'SYSTEM',
+    audience,
+    status: 'SENT',
+  });
 
   const recipients = userIds.map((userId) => ({
     userId,

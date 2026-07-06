@@ -14,6 +14,7 @@ const NAV = [
   { icon: '🛡', label: 'Trust & Safety', to: ROUTES.ADMIN_TRUST_SAFETY },
   { icon: <FiCreditCard />, label: 'Revenue & Payments', to: ROUTES.ADMIN_REVENUE },
   { icon: <FiBriefcase />, label: 'Operations', to: ROUTES.ADMIN_OPERATIONS },
+  { icon: '🔔', label: 'Notifications', to: ROUTES.ADMIN_NOTIFICATIONS },
   { icon: '⚙', label: 'Settings',  to: ROUTES.ADMIN_SETTINGS  },
 ];
 

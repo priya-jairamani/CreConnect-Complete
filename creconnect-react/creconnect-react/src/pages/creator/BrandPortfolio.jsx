@@ -92,9 +92,18 @@ export default function BrandPortfolio() {
       isOwnProfile ? brandsApi.getProfile().catch(() => ({ data: null })) : Promise.resolve({ data: null }),
     ]).then(([brandsRes, ownRes]) => {
       const list = Array.isArray(brandsRes.data) ? brandsRes.data : (brandsRes.data?.data ?? []);
-      setAllBrands(list.map((b) => ({ ...b, intel: getBrandIntel(b) })));
+      setAllBrands(list.map((b) => ({
+        ...b,
+        intel: { ...getBrandIntel(b), ...(b.trustScore != null ? { trustScore: b.trustScore } : {}) },
+      })));
       if (ownRes.data) {
-        setOwnBrand({ ...ownRes.data, intel: getBrandIntel(ownRes.data) });
+        setOwnBrand({
+          ...ownRes.data,
+          intel: {
+            ...getBrandIntel(ownRes.data),
+            ...(ownRes.data.trustScore != null ? { trustScore: ownRes.data.trustScore } : {}),
+          },
+        });
       }
     }).finally(() => setIsLoading(false));
   }, [isOwnProfile]);

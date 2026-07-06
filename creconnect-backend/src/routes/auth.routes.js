@@ -304,7 +304,7 @@ router.post('/send-otp', authLimiter, [body('email').isEmail()], validate, ctrl.
  *       400:
  *         description: Invalid or expired OTP
  */
-router.post('/verify-otp', [body('email').isEmail(), body('code').isLength({ min: 6, max: 6 })], validate, ctrl.verifyOTP);
+router.post('/verify-otp', authLimiter, [body('email').isEmail(), body('code').isLength({ min: 6, max: 6 })], validate, ctrl.verifyOTP);
 
 // ── Google OAuth ──────────────────────────────────────────────────────────
 router.get('/google',          authLimiter, googleCtrl.googleStart);

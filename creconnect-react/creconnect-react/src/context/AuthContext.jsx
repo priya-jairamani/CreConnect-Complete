@@ -173,6 +173,7 @@ export function AuthProvider({ children }) {
   const clearError = useCallback(() => dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR }), []);
 
   const loginWithTokens = useCallback(({ user, accessToken, refreshToken }) => {
+    localStorage.removeItem(DEMO_MODE_KEY);
     localStorage.setItem('accessToken',  accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('userId',       user.id);

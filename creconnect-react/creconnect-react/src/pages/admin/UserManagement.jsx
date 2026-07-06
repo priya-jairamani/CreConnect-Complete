@@ -8,8 +8,20 @@ import Button from '@/components/common/Button';
 import EmptyState from '@/components/common/EmptyState';
 import Skeleton, { SkeletonRow } from '@/components/common/Skeleton';
 import Drawer from '@/components/common/Drawer';
+import VerificationQueueTab from '@/components/admin/VerificationQueueTab';
 
 import { timeAgo } from '@/utils/formatters';
+
+function TrustScoreCell({ score, max = 100 }) {
+  const value = score ?? 0;
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const color = pct >= 75 ? 'var(--success)' : pct >= 40 ? 'var(--warning)' : 'var(--fg-muted)';
+  return (
+    <span className="font-semibold tabular-nums" style={{ color }}>
+      {value}<span className="text-fg-muted font-normal text-xs">/{max}</span>
+    </span>
+  );
+}
 
 // The backend caps `limit` at 100 per request (see pagination.js), and the
 // shared axios client unwraps the `{ success, data, meta }` envelope down to
@@ -21,7 +33,8 @@ const TABS = [
   { id: 'overview', label: 'Overview', icon: '📊' },
   { id: 'creators', label: 'Creators', icon: '✦', role: 'CREATOR' },
   { id: 'brands', label: 'Brands', icon: '🏢', role: 'BRAND' },
-  { id: 'verification', label: 'Pending Verification', icon: '🛂', status: 'PENDING' },
+  { id: 'verification', label: 'Pending Accounts', icon: '🛂', status: 'PENDING' },
+  { id: 'doc-queue', label: 'Verification Queue', icon: '📋' },
   { id: 'suspended', label: 'Suspended Accounts', icon: '⛔', status: 'SUSPENDED' },
 ];
 
@@ -67,6 +80,7 @@ function unwrapList(data) {
 }
 
 function countOf(res) {
+  if (res?.meta?.total != null) return res.meta.total;
   return unwrapList(res?.data).length;
 }
 
@@ -121,7 +135,7 @@ export default function UserManagement() {
 
   const fetchUsers = useCallback((targetPage, append) => {
     const tab = TABS.find((t) => t.id === activeTab);
-    if (!tab || tab.id === 'overview') return;
+    if (!tab || tab.id === 'overview' || tab.id === 'doc-queue') return;
 
     const params = { page: targetPage, limit: PAGE_SIZE };
     if (tab.role) params.role = tab.role;
@@ -147,8 +161,8 @@ export default function UserManagement() {
 
   useEffect(() => {
     setPage(1);
-    if (activeTab === 'overview') {
-      fetchCounts();
+    if (activeTab === 'overview' || activeTab === 'doc-queue') {
+      if (activeTab === 'overview') fetchCounts();
     } else {
       fetchUsers(1, false);
     }
@@ -179,7 +193,10 @@ export default function UserManagement() {
   }
 
   const showRoleColumn = activeTab === 'verification' || activeTab === 'suspended';
-  const colSpan = showRoleColumn ? 5 : 4;
+  const showTrustColumn = activeTab === 'creators' || activeTab === 'brands';
+  let colSpan = 4;
+  if (showRoleColumn) colSpan += 1;
+  if (showTrustColumn) colSpan += 1;
 
   return (
     <div className="p-6 space-y-6">
@@ -192,7 +209,7 @@ export default function UserManagement() {
             Review, verify, suspend and manage creators &amp; brands across the marketplace.
           </p>
         </div>
-        {activeTab !== 'overview' && (
+        {activeTab !== 'overview' && activeTab !== 'doc-queue' && (
           <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-2 w-full sm:w-72">
             <span>🔍</span>
             <input
@@ -246,8 +263,11 @@ export default function UserManagement() {
         </div>
       )}
 
+      {/* Verification document queue */}
+      {activeTab === 'doc-queue' && <VerificationQueueTab />}
+
       {/* Users table (Creators / Brands / Verification / Suspended tabs) */}
-      {activeTab !== 'overview' && (
+      {activeTab !== 'overview' && activeTab !== 'doc-queue' && (
         <div className="space-y-4">
           <div className="card rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -259,6 +279,7 @@ export default function UserManagement() {
                   >
                     <th className="px-4 py-3 text-left min-w-[220px]">User</th>
                     {showRoleColumn && <th className="px-3 py-3 text-left">Role</th>}
+                    {showTrustColumn && <th className="px-3 py-3 text-left">Trust Score</th>}
                     <th className="px-3 py-3 text-left">Status</th>
                     <th className="px-3 py-3 text-left">Joined</th>
                     <th className="px-3 py-3 text-right">Actions</th>
@@ -297,6 +318,11 @@ export default function UserManagement() {
                           </td>
                           {showRoleColumn && (
                             <td className="px-3 py-3"><Badge variant="neutral" label={ROLE_LABELS[u.role] ?? u.role} /></td>
+                          )}
+                          {showTrustColumn && (
+                            <td className="px-3 py-3">
+                              <TrustScoreCell score={u.trustScore} max={u.maxTrustScore ?? (u.role === 'BRAND' ? 100 : 80)} />
+                            </td>
                           )}
                           <td className="px-3 py-3"><Badge variant={statusMeta.variant} label={statusMeta.label} dot /></td>
                           <td className="px-3 py-3 text-fg-muted whitespace-nowrap">{timeAgo(u.createdAt)} ago</td>
@@ -402,6 +428,15 @@ export default function UserManagement() {
                   <p className="text-fg-muted text-xs">Joined</p>
                   <p className="text-fg font-semibold">{new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                 </div>
+                {(selectedUser.role === 'CREATOR' || selectedUser.role === 'BRAND') && (
+                  <div>
+                    <p className="text-fg-muted text-xs">Trust Score</p>
+                    <TrustScoreCell
+                      score={selectedUser.trustScore}
+                      max={selectedUser.maxTrustScore ?? (selectedUser.role === 'BRAND' ? 100 : 80)}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -4,7 +4,7 @@ import NotificationItem, { FILTER_TABS, getCategory } from '@/components/notific
 import Button from '@/components/common/Button';
 import EmptyState from '@/components/common/EmptyState';
 
-export default function NotificationsPage() {
+export default function NotificationsPage({ embedded = false }) {
   // Use context directly — the sidebar already triggers fetchNotifications() on mount.
   // Re-fetching here would overwrite locally-pushed notifications and flicker the count.
   const { notifications, unreadCount, markRead, markAllRead, isLoading } = useNotificationContext();
@@ -35,9 +35,10 @@ export default function NotificationsPage() {
   }, [notifications]);
 
   return (
-    <div className="p-6 space-y-5 max-w-2xl">
+    <div className={embedded ? 'space-y-5 max-w-2xl' : 'p-6 space-y-5 max-w-2xl'}>
 
       {/* Header */}
+      {!embedded ? (
       <header className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
@@ -65,6 +66,12 @@ export default function NotificationsPage() {
           </Button>
         )}
       </header>
+      ) : unreadCount > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-fg-muted">{unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}</p>
+          <Button variant="ghost" size="sm" onClick={markAllRead}>✓ Mark all read</Button>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 flex-wrap">

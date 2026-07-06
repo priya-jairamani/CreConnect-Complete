@@ -10,10 +10,25 @@ const api = axios.create({
   timeout: 10000,
 });
 
-// ── Request: attach access token ─────────────────────────────────────
+// ── Request: attach token; presentation-admin demo sessions use local mocks ──
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  if (isDemo()) {
+    const mock = getMockApiResponse(config.method, config.url || '');
+    if (mock.data !== null || mock.meta !== undefined) {
+      config.adapter = async () => ({
+        data: { success: true, data: mock.data, meta: mock.meta },
+        status: 200,
+        statusText: 'OK',
+        headers: { 'content-type': 'application/json' },
+        config,
+        request: {},
+      });
+    }
+  }
+
   return config;
 });
 
@@ -60,7 +75,9 @@ api.interceptors.response.use(
       err.config  = res.config;
       return Promise.reject(err);
     }
-    return res.data?.data !== undefined ? { ...res, data: res.data.data } : res;
+    return res.data?.data !== undefined
+      ? { ...res, data: res.data.data, meta: res.data.meta }
+      : res;
   },
   async (error) => {
     const original = error.config;

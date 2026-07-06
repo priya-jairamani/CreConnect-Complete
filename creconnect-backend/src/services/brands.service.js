@@ -3,14 +3,16 @@ const { BrandProfile, Campaign, Application, Collaboration, CreatorProfile, Soci
 const { NotFoundError } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const { logActivity } = require('../utils/activity');
+const verificationSvc = require('./verification.service');
 
 async function getMyProfile(userId) {
   const profile = await BrandProfile.findOne({
     where: { userId },
-    include: [{ model: User, as: 'user', attributes: ['email', 'status', 'createdAt'] }],
+    include: [{ model: User, as: 'user', attributes: ['email', 'status', 'createdAt', 'emailVerified'] }],
   });
   if (!profile) throw new NotFoundError('Brand profile not found');
-  return profile;
+  const trust = await verificationSvc.getTrustForUser(userId);
+  return { ...profile.toJSON(), ...trust };
 }
 
 async function updateMyProfile(userId, data) {

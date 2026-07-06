@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/useToast';
+import { useIsMockAdmin } from '@/hooks/useIsMockAdmin';
+import LiveRevenuePayments from '@/components/revenuePayments/LiveRevenuePayments';
 
 import OverviewTab from '@/components/revenuePayments/OverviewTab';
 import TransactionsTab from '@/components/revenuePayments/TransactionsTab';
@@ -42,6 +44,11 @@ const BULK_ACTION_MESSAGES = {
 };
 
 export default function RevenuePayments() {
+  const isMock = useIsMockAdmin();
+  return isMock ? <MockRevenuePayments /> : <LiveRevenuePayments />;
+}
+
+function MockRevenuePayments() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedTransaction, setSelectedTransaction] = useState(null);

@@ -1,7 +1,9 @@
+import { MOCK_ADMIN_EMAIL } from './adminAccounts';
+
 /**
- * Local demo accounts used when the backend API is unreachable. Lets the
- * frontend be explored standalone — login still requires one of these
- * email/password pairs, but no network call is made.
+ * Local demo accounts — bypass the backend and use mock data.
+ * The presentation admin (admin@creconnect.pk) always uses this path.
+ * Brand/creator demos also work when the API is unreachable.
  */
 export const DEMO_ACCOUNTS = [
   {
@@ -27,13 +29,13 @@ export const DEMO_ACCOUNTS = [
     },
   },
   {
-    email: 'admin@creconnect.com',
-    password: 'Admin@123',
+    email: MOCK_ADMIN_EMAIL,
+    password: 'Admin@12345',
     user: {
-      id: 'demo-admin-1',
-      email: 'admin@creconnect.com',
+      id: 'demo-admin-pk',
+      email: MOCK_ADMIN_EMAIL,
       role: 'ADMIN',
-      name: 'Admin',
+      name: 'Demo Admin',
     },
   },
 ];

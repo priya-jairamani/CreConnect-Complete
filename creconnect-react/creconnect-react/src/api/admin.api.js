@@ -8,7 +8,10 @@ export const adminApi = {
   moderateContent: (id, action) => api.patch(`/admin/content/${id}/${action}`),
   getReports:      (params) => api.get('/admin/reports', { params }),
   resolveReport:   (id, action, data) => api.patch(`/admin/reports/${id}/${action}`, data),
-  sendAnnouncement: (data) => api.post('/admin/announce', data),
+  sendAnnouncement: (data) => api.post('/admin/announce', {
+    message: data.message ?? data.body,
+    audience: data.audience,
+  }),
   getAuditLogs:    (params) => api.get('/admin/audit-logs', { params }),
   getAnalytics:    (params) => api.get('/analytics/admin', { params }),
 
@@ -27,4 +30,9 @@ export const adminApi = {
   // Platform settings
   getSettings:    () => api.get('/admin/settings'),
   updateSettings: (data) => api.patch('/admin/settings', data),
+
+  // Notifications
+  getNotifications:       (params) => api.get('/admin/notifications', { params }),
+  getFailedNotifications: (params) => api.get('/admin/notifications/failed', { params }),
+  sendPushNotification:   (data) => api.post('/admin/notifications/push', data),
 };

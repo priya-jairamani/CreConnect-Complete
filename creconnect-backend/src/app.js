@@ -34,6 +34,8 @@ app.use(
 const ALLOWED_ORIGINS = [
   FRONTEND_URL,
   'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
   'http://localhost:5000',
   'http://localhost:5173',
   'http://localhost:5174',
@@ -44,6 +46,8 @@ app.use(cors({
   origin: (origin, cb) => {
     // allow server-to-server (no origin) and any listed origin
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    // Vite may pick 3001+ when 3000 is busy — allow any localhost port in dev
+    if (NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(origin)) return cb(null, true);
     cb(new Error(`CORS: ${origin} not allowed`));
   },
   credentials: true,

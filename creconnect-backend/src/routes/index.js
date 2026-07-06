@@ -16,6 +16,7 @@ router.use('/subscriptions', require('./subscriptions.routes'));
 router.use('/upload',        require('./upload.routes'));
 router.use('/social',        require('./social.routes'));
 router.use('/verification',  require('./verification.routes'));
+router.use('/reports',       require('./reports.routes'));
 router.use('/admin',         require('./admin.routes'));
 router.use('/ai',            require('./ai.routes'));
 router.use('/copilot',       require('./copilot.routes'));

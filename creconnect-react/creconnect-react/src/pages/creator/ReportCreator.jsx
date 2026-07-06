@@ -36,14 +36,22 @@ export default function ReportCreator() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const reportedId = searchParams.get('userId');
+    if (!reportedId) {
+      setError('Missing user to report. Open this page from a profile or campaign.');
+      return;
+    }
+    if (!details.trim()) {
+      setError('Please describe the issue in the details field.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      const reportedId = searchParams.get('userId');
       await api.post('/reports', {
-        reportedId: reportedId || 'unknown',
-        type: VIOLATION_TYPE_MAP[selected] || 'OTHER',
-        details,
+        reportedId,
+        violationType: VIOLATION_TYPE_MAP[selected] || 'OTHER',
+        description: details.trim(),
       });
       setSubmitted(true);
     } catch (err) {
@@ -117,7 +125,7 @@ export default function ReportCreator() {
             {error}
           </div>
         )}
-        <Button type="submit" variant="danger" size="md" disabled={!selected || isLoading} isLoading={isLoading}>
+        <Button type="submit" variant="danger" size="md" disabled={!selected || !details.trim() || isLoading} isLoading={isLoading}>
           Submit Report
         </Button>
       </form>

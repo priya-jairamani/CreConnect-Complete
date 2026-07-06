@@ -9,14 +9,21 @@ module.exports = {
     const now  = new Date();
 
     const adminId   = uuid();
+    const opsAdminId = uuid();
     const brandId   = uuid();
     const creatorId = uuid();
 
     const adminProfileId   = uuid();
+    const opsAdminProfileId = uuid();
     const brandProfileId   = uuid();
     const creatorProfileId = uuid();
 
     await queryInterface.bulkInsert('users', [
+      {
+        id: opsAdminId, email: 'admin@creconnect.com',
+        passwordHash: hash('Admin@12345'),
+        role: 'ADMIN', status: 'APPROVED', emailVerified: true, createdAt: now, updatedAt: now,
+      },
       {
         id: adminId, email: process.env.ADMIN_EMAIL || 'admin@creconnect.pk',
         passwordHash: hash(process.env.ADMIN_PASSWORD || 'Admin@12345'),
@@ -34,9 +41,14 @@ module.exports = {
       },
     ]);
 
-    await queryInterface.bulkInsert('admin_profiles', [{
-      id: adminProfileId, userId: adminId, name: 'Super Admin', createdAt: now, updatedAt: now,
-    }]);
+    await queryInterface.bulkInsert('admin_profiles', [
+      {
+        id: opsAdminProfileId, userId: opsAdminId, name: 'Operations Admin', createdAt: now, updatedAt: now,
+      },
+      {
+        id: adminProfileId, userId: adminId, name: 'Legacy Admin', createdAt: now, updatedAt: now,
+      },
+    ]);
 
     await queryInterface.bulkInsert('brand_profiles', [{
       id: brandProfileId, userId: brandId,

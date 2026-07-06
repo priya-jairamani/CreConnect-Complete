@@ -14,6 +14,30 @@ export const PAYMENT_STATUS_META = {
   DISPUTED: { label: 'Disputed',  variant: 'danger' },
 };
 
+export function paymentStatusMeta(status) {
+  const key = String(status || 'PENDING').toUpperCase();
+  return PAYMENT_STATUS_META[key] ?? { label: key, variant: 'neutral' };
+}
+
+/** Count and sum payments grouped by status (for overview breakdowns). */
+export function summarizeByStatus(payments) {
+  const buckets = {};
+  (payments || []).forEach((p) => {
+    const key = String(p.status || 'PENDING').toUpperCase();
+    if (!buckets[key]) buckets[key] = { count: 0, amount: 0 };
+    buckets[key].count += 1;
+    buckets[key].amount += Number(p.amountPKR || 0);
+  });
+  return Object.entries(buckets)
+    .map(([status, { count, amount }]) => ({
+      status,
+      ...paymentStatusMeta(status),
+      count,
+      amount,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 export const PAYMENT_STATUS_OPTIONS = ['All', ...Object.keys(PAYMENT_STATUS_META)];
 
 const AVATAR_COLORS = ['#6d5cff', '#857fff', '#16b364', '#f59e0b', '#f0445f', '#0ea5e9', '#d946ef', '#10b981', '#f97316', '#6366f1'];
@@ -59,8 +83,8 @@ function monthLabel(key) {
 export function bucketPaymentsByMonth(payments, { dateField = 'releasedAt', statuses = ['RELEASED', 'PAID'], months = 12 } = {}) {
   const buckets = new Map();
   (payments || []).forEach((p) => {
-    if (statuses && !statuses.includes(p.status)) return;
-    const raw = p[dateField];
+    if (statuses && !statuses.includes(String(p.status).toUpperCase())) return;
+    const raw = p[dateField] || p.createdAt;
     if (!raw) return;
     const key = monthKey(raw);
     buckets.set(key, (buckets.get(key) || 0) + Number(p.amountPKR || 0));

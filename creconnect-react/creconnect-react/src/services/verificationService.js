@@ -50,10 +50,18 @@ export const verificationService = {
   async getStatus() {
     try {
       const { data } = await verificationApi.getStatus();
-      const list = Array.isArray(data) ? data : (data?.verifications ?? []);
-      return { verifications: list, error: null };
+      const list = Array.isArray(data?.verifications)
+        ? data.verifications
+        : (Array.isArray(data) ? data : (data?.verifications ?? []));
+      return {
+        verifications: list,
+        trustScore: data?.trustScore ?? 0,
+        maxTrustScore: data?.maxTrustScore ?? 0,
+        breakdown: data?.breakdown ?? {},
+        error: null,
+      };
     } catch {
-      return { verifications: [], error: null }; // treat missing endpoint as empty
+      return { verifications: [], trustScore: 0, maxTrustScore: 0, breakdown: {}, error: null };
     }
   },
 
@@ -73,6 +81,8 @@ export const verificationService = {
 
     const frontDocumentId = frontRes.data?.documentId ?? frontRes.data?.id;
     const backDocumentId  = backRes.data?.documentId  ?? backRes.data?.id;
+    const frontUrl        = frontRes.data?.secureUrl ?? frontRes.data?.url;
+    const backUrl         = backRes.data?.secureUrl  ?? backRes.data?.url;
 
     // Step 2 — create verification record
     const { data } = await verificationApi.submitNIC({
@@ -80,6 +90,8 @@ export const verificationService = {
       nicNumber,
       frontDocumentId,
       backDocumentId,
+      frontUrl,
+      backUrl,
       provider,
     });
 
