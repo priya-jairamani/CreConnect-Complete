@@ -51,6 +51,23 @@ const RESPONSE_TIME_MAX_HOURS = {
   'Within 3 days': 72,
 };
 
+function enrichBrandForCard(brand, allBrands, aiScore, aiBreakdown) {
+  const full = allBrands.find((b) => b.id === brand.id) || brand;
+  const intel = full.intel ?? getBrandIntel(full);
+  const meta = full.meta ?? getBrandMeta(full);
+  const filterTags = full.filterTags ?? getBrandFilterTags(full);
+  return {
+    ...full,
+    intel,
+    meta,
+    location: full.location || meta.headquarters,
+    brandSize: full.brandSize || brandSizeFromCompanySize(meta.companySize),
+    filterTags,
+    aiScore,
+    aiBreakdown,
+  };
+}
+
 export default function FindBrands() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -185,17 +202,20 @@ export default function FindBrands() {
     try {
       const { data } = await aiApi.getCreatorMatches(profileId, 20);
       const list = Array.isArray(data) ? data : (data?.data ?? []);
-      if (list.length === 0) {
-        toast.info('No AI matches found yet — the engine may not have been run for your profile.');
-      }
-      // Enrich AI results with full brand objects from allBrands for card rendering
-      const enriched = list.map((m) => {
-        const full = allBrands.find((b) => b.id === m.brandId);
-        return full ? { ...full, aiScore: m.matchScore, aiBreakdown: m.breakdown } : null;
-      }).filter(Boolean);
+      const enriched = list
+        .map((m) => {
+          const brand = m.brand || allBrands.find((b) => b.id === m.brandId);
+          if (!brand) return null;
+          return enrichBrandForCard(brand, allBrands, m.matchScore, m.breakdown);
+        })
+        .filter(Boolean);
       setAiMatches(enriched);
-    } catch {
-      toast.error('Could not load AI matches. Make sure the engine has been run.');
+      if (enriched.length === 0) {
+        toast.info('No brand matches found for your profile yet. Try completing your niche and location in Profile.');
+      }
+    } catch (err) {
+      const msg = err?.message || err?.data?.message;
+      toast.error(msg || 'Could not load AI matches. Check your plan includes AI matching.');
       setAiMatches([]);
     }
     setAiLoading(false);
@@ -377,7 +397,7 @@ export default function FindBrands() {
           <div className="flex flex-col items-center text-center gap-3 py-12">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: 'rgba(109,92,255,0.1)', border: '1px solid rgba(109,92,255,0.2)' }}>✦</div>
             <h3 className="text-lg font-semibold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>No AI matches yet</h3>
-            <p className="text-fg-muted text-sm max-w-sm">The AI engine hasn&apos;t matched brands to your profile yet. Check back soon or browse all opportunities.</p>
+            <p className="text-fg-muted text-sm max-w-sm">We couldn&apos;t find brands that match your profile yet. Add your niche and location in Profile, then try again.</p>
             <button type="button" onClick={() => setAiMode(false)} className="px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: 'var(--surface-2)', color: 'var(--fg)', border: '1px solid var(--border)' }}>
               Browse all brands
             </button>

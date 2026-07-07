@@ -49,6 +49,36 @@ async function ensureEngineLoaded() {
   engineReady = true;
 }
 
+async function scoreBrandMatches(brandId, limit = 10) {
+  engineReady = false;
+  await ensureEngineLoaded();
+  const scored = engine.getMatches(brandId, limit);
+
+  const creatorIds = scored.map((m) => m.creatorId);
+  const creators   = creatorIds.length
+    ? await db.CreatorProfile.findAll({
+        where: { id: creatorIds },
+        attributes: ['id', 'username', 'displayName', 'niche', 'avatarUrl', 'engagementRate', 'followerCount', 'rating', 'userId'],
+      })
+    : [];
+  const creatorById = Object.fromEntries(creators.map((c) => [c.id, c.toJSON()]));
+
+  return scored.map((m) => ({
+    brandId,
+    creatorId:  m.creatorId,
+    matchScore: m.score,
+    breakdown:  m.breakdown,
+    method:     m.method,
+    weights:    m.weights,
+    creator:    creatorById[m.creatorId] || {
+      id: m.creatorId,
+      displayName: m.creatorName,
+      username:    m.username,
+      niche:       m.niche,
+    },
+  }));
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 /**
@@ -90,47 +120,69 @@ router.post('/run', authenticate, authorize('ADMIN'), async (req, res, next) => 
 
 /**
  * GET /api/v1/ai/matches/brand/:brandId
- * Returns stored top matches for a brand (BRAND or ADMIN).
+ * Returns creator matches scored live for this brand's profile.
  */
 router.get('/matches/brand/:brandId', authenticate, requireAI, async (req, res, next) => {
   try {
-    const limit = Number(req.query.limit) || 10;
+    const brandId = req.params.brandId;
+    const limit   = Number(req.query.limit) || 10;
 
-    const rows = await db.AiMatch.findAll({
-      where:   { brandId: req.params.brandId },
-      order:   [['matchScore', 'DESC']],
-      limit,
-      include: [{
-        model:      db.CreatorProfile,
-        as:         'creator',
-        attributes: ['username', 'displayName', 'niche', 'avatarUrl', 'engagementRate', 'followerCount', 'rating'],
-      }],
-    });
+    if (req.user.role === 'BRAND') {
+      const mine = await db.BrandProfile.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!mine || mine.id !== brandId) {
+        return res.status(403).json({ success: false, message: 'You can only view matches for your own brand.' });
+      }
+    }
 
-    res.json({ success: true, data: rows.map((r) => r.toJSON()) });
+    engineReady = false;
+    await ensureEngineLoaded();
+    const data = await scoreBrandMatches(brandId, limit);
+
+    res.json({ success: true, data, source: 'live' });
   } catch (err) { next(err); }
 });
 
 /**
  * GET /api/v1/ai/matches/creator/:creatorId
- * Returns stored brand matches for a creator (CREATOR or ADMIN).
+ * Returns brand matches scored for this creator's profile (live engine).
+ * Stored ai_matches rows are brand-centric (top creators per brand), so creators
+ * need live scoring via getMatchesForCreator to see brands that fit them.
  */
 router.get('/matches/creator/:creatorId', authenticate, requireAI, async (req, res, next) => {
   try {
-    const limit = Number(req.query.limit) || 10;
+    const creatorId = req.params.creatorId;
+    const limit     = Number(req.query.limit) || 10;
 
-    const rows = await db.AiMatch.findAll({
-      where:   { creatorId: req.params.creatorId },
-      order:   [['matchScore', 'DESC']],
-      limit,
-      include: [{
-        model:      db.BrandProfile,
-        as:         'brand',
-        attributes: ['companyName', 'industry', 'logoUrl', 'location'],
-      }],
-    });
+    if (req.user.role === 'CREATOR') {
+      const mine = await db.CreatorProfile.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!mine || mine.id !== creatorId) {
+        return res.status(403).json({ success: false, message: 'You can only view matches for your own profile.' });
+      }
+    }
 
-    res.json({ success: true, data: rows.map((r) => r.toJSON()) });
+    engineReady = false;
+    await ensureEngineLoaded();
+    const scored = engine.getMatchesForCreator(creatorId, limit);
+
+    const brandIds = scored.map((m) => m.brandId);
+    const brands   = brandIds.length
+      ? await db.BrandProfile.findAll({
+          where: { id: brandIds },
+          attributes: ['id', 'companyName', 'industry', 'logoUrl', 'location', 'description', 'isVerified'],
+        })
+      : [];
+    const brandById = Object.fromEntries(brands.map((b) => [b.id, b.toJSON()]));
+
+    const data = scored.map((m) => ({
+      brandId:    m.brandId,
+      creatorId,
+      matchScore: m.score,
+      breakdown:  m.breakdown,
+      method:     m.method || 'content-based',
+      brand:      brandById[m.brandId] || { id: m.brandId, companyName: m.brandName, industry: m.industry },
+    }));
+
+    res.json({ success: true, data, source: 'live' });
   } catch (err) { next(err); }
 });
 
@@ -159,14 +211,22 @@ router.post('/feedback', authenticate, async (req, res, next) => {
 
 /**
  * GET /api/v1/ai/matches/brand/:brandId/live
- * Bypasses stored results and scores live. Good for testing new profiles.
+ * Alias for live brand matches (same as the main brand endpoint).
  */
 router.get('/matches/brand/:brandId/live', authenticate, requireAI, async (req, res, next) => {
   try {
-    engineReady = false;
-    await ensureEngineLoaded();
-    const matches = engine.getMatches(req.params.brandId, Number(req.query.limit) || 10);
-    res.json({ success: true, data: matches, source: 'live' });
+    const brandId = req.params.brandId;
+    const limit   = Number(req.query.limit) || 10;
+
+    if (req.user.role === 'BRAND') {
+      const mine = await db.BrandProfile.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
+      if (!mine || mine.id !== brandId) {
+        return res.status(403).json({ success: false, message: 'You can only view matches for your own brand.' });
+      }
+    }
+
+    const data = await scoreBrandMatches(brandId, limit);
+    res.json({ success: true, data, source: 'live' });
   } catch (err) { next(err); }
 });
 

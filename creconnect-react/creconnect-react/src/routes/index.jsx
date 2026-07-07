@@ -21,6 +21,7 @@ import AdminLayout   from '@/layouts/AdminLayout';
 
 /* Guards */
 import ProtectedRoute from './ProtectedRoute';
+import ApprovalGate from '@/components/common/ApprovalGate';
 
 /* ── Public pages ──────────────────────────────────────────── */
 import LandingPage        from '@/pages/public/LandingPage';
@@ -81,6 +82,8 @@ const wrap = (element, roles) => (
   <ProtectedRoute allowedRoles={roles}>{element}</ProtectedRoute>
 );
 
+const approved = (element) => <ApprovalGate>{element}</ApprovalGate>;
+
 const router = createBrowserRouter([
   /* ── Public ── */
   {
@@ -122,14 +125,14 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorDisplay />,
     children: [
       { path: ROUTES.CREATOR_DASHBOARD,  element: <CreatorDashboard /> },
-      { path: ROUTES.CREATOR_FIND_BRANDS,element: <FindBrands /> },
-      { path: ROUTES.CREATOR_CAMPAIGNS,  element: <CreatorCampaigns /> },
-      { path: ROUTES.CREATOR_COLLABS,    element: <Collaborations /> },
-      { path: ROUTES.CREATOR_REVIEWS,    element: <Reviews /> },
-      { path: ROUTES.CREATOR_PAYMENTS,   element: <CreatorPayments /> },
+      { path: ROUTES.CREATOR_FIND_BRANDS,element: approved(<FindBrands />) },
+      { path: ROUTES.CREATOR_CAMPAIGNS,  element: approved(<CreatorCampaigns />) },
+      { path: ROUTES.CREATOR_COLLABS,    element: approved(<Collaborations />) },
+      { path: ROUTES.CREATOR_REVIEWS,    element: approved(<Reviews />) },
+      { path: ROUTES.CREATOR_PAYMENTS,   element: approved(<CreatorPayments />) },
       { path: ROUTES.CREATOR_PROFILE,    element: <CreatorProfile /> },
       { path: ROUTES.CREATOR_INFO,       element: <CreatorInfo /> },
-      { path: ROUTES.CREATOR_MESSAGES,   element: <CreatorMessages /> },
+      { path: ROUTES.CREATOR_MESSAGES,   element: approved(<CreatorMessages />) },
       { path: ROUTES.CREATOR_NOTIFS,     element: <Notifications /> },
       { path: ROUTES.CREATOR_REMINDERS,  element: <CreatorReminders /> },
       { path: ROUTES.CREATOR_REPORT,     element: <ReportCreator /> },
@@ -143,18 +146,18 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorDisplay />,
     children: [
       { path: ROUTES.BRAND_DASHBOARD,        element: <BrandDashboard /> },
-      { path: ROUTES.BRAND_SEARCH,           element: <SearchCreators /> },
-      { path: ROUTES.BRAND_CAMPAIGNS,        element: <Campaigns /> },
-      { path: ROUTES.BRAND_COLLABORATIONS,   element: <BrandCollaborations /> },
-      { path: ROUTES.BRAND_COLLAB_REQUEST,   element: <CollabRequest /> },
-      { path: ROUTES.BRAND_MESSAGES,         element: <BrandMessages /> },
-      { path: ROUTES.BRAND_ACTIVITY,         element: <BrandActivity /> },
+      { path: ROUTES.BRAND_SEARCH,           element: approved(<SearchCreators />) },
+      { path: ROUTES.BRAND_CAMPAIGNS,        element: approved(<Campaigns />) },
+      { path: ROUTES.BRAND_COLLABORATIONS,   element: approved(<BrandCollaborations />) },
+      { path: ROUTES.BRAND_COLLAB_REQUEST,   element: approved(<CollabRequest />) },
+      { path: ROUTES.BRAND_MESSAGES,         element: approved(<BrandMessages />) },
+      { path: ROUTES.BRAND_ACTIVITY,         element: approved(<BrandActivity />) },
       { path: ROUTES.BRAND_SETTINGS,         element: <BrandSettings /> },
       { path: ROUTES.BRAND_REMINDERS,        element: <BrandReminders /> },
       { path: ROUTES.BRAND_NOTIFICATIONS,   element: <BrandNotifications /> },
       { path: ROUTES.BRAND_MY_PORTFOLIO,     element: <BrandPortfolio /> },
       { path: ROUTES.BRAND_CREATOR_PROFILE, element: <CreatorPortfolio /> },
-      { path: ROUTES.BRAND_PAYMENTS,        element: <BrandPayments /> },
+      { path: ROUTES.BRAND_PAYMENTS,        element: approved(<BrandPayments />) },
     ],
   },
 

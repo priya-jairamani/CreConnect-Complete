@@ -198,8 +198,17 @@ async function listTickets(query) {
     limit,
     order: [['createdAt', 'DESC']],
     include: [
-      { model: User, as: 'reporter',      attributes: ['email', 'role'], required: false },
-      { model: User, as: 'assignedAdmin', attributes: ['email'],         required: false },
+      {
+        model: User,
+        as: 'reporter',
+        attributes: ['id', 'email', 'role', 'status', 'createdAt'],
+        required: false,
+        include: [
+          { model: CreatorProfile, as: 'creatorProfile', attributes: ['displayName'], required: false },
+          { model: BrandProfile,   as: 'brandProfile',   attributes: ['companyName'], required: false },
+        ],
+      },
+      { model: User, as: 'assignedAdmin', attributes: ['email'], required: false },
     ],
   });
 
@@ -210,15 +219,29 @@ async function createTicket(adminId, { subject, description, category, priority 
   return Ticket.create({ subject, description, category, priority, reporterId: adminId });
 }
 
-async function updateTicket(id, { status, assignedAdminId }) {
+async function updateTicket(id, { status, assignedAdminId, priority }) {
   const ticket = await Ticket.findByPk(id);
   if (!ticket) throw new NotFoundError('Ticket not found');
   const updates = {};
   if (status)          updates.status = status.toUpperCase();
   if (assignedAdminId) updates.assignedAdminId = assignedAdminId;
+  if (priority)        updates.priority = priority.toUpperCase();
   if (updates.status === 'RESOLVED' || updates.status === 'CLOSED') updates.resolvedAt = new Date();
   await ticket.update(updates);
-  return ticket;
+  return ticket.reload({
+    include: [
+      {
+        model: User,
+        as: 'reporter',
+        attributes: ['id', 'email', 'role', 'status', 'createdAt'],
+        include: [
+          { model: CreatorProfile, as: 'creatorProfile', attributes: ['displayName'], required: false },
+          { model: BrandProfile,   as: 'brandProfile',   attributes: ['companyName'], required: false },
+        ],
+      },
+      { model: User, as: 'assignedAdmin', attributes: ['email'], required: false },
+    ],
+  });
 }
 
 /* ── Payments / Revenue ──────────────────────────────────────────────── */

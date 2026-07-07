@@ -52,12 +52,13 @@ export default function SearchCreators() {
     try {
       const { data } = await aiApi.getBrandMatches(id, 20);
       const list = Array.isArray(data) ? data : (data?.data ?? []);
-      if (list.length === 0) {
-        toast.info('No AI matches yet — run the engine from the admin panel first.');
-      }
       setAiResults(list);
-    } catch {
-      toast.error('Could not load AI matches. Make sure the AI engine has been run.');
+      if (list.length === 0) {
+        toast.info('No creator matches found for your brand profile yet. Complete your industry and preferences in Settings.');
+      }
+    } catch (err) {
+      const msg = err?.message || err?.data?.message;
+      toast.error(msg || 'Could not load AI matches. Check your plan includes AI matching.');
       setAiResults([]);
     }
     setAiLoading(false);
@@ -265,7 +266,7 @@ export default function SearchCreators() {
           <EmptyState
             icon="✦"
             title="No AI matches yet"
-            message="The AI engine hasn't been run yet. Ask your admin to trigger it, or switch back to manual search."
+            message="We couldn't find creators that match your brand profile yet. Complete your industry and campaign preferences in Settings, then try again."
             action={<Button variant="secondary" size="sm" onClick={() => setAiMode(false)}>Back to search</Button>}
           />
         ) : (

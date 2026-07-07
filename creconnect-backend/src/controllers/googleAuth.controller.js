@@ -83,15 +83,22 @@ async function googleCallback(req, res) {
       }
 
       user = await User.create(
-        { email, passwordHash: randomHash, role, status: 'APPROVED', emailVerified: true, ...nestedData },
+        { email, passwordHash: randomHash, role, status: 'PENDING', emailVerified: true, ...nestedData },
         { include }
       );
+    }
+
+    if (user.status === 'REJECTED') {
+      return res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent('Account registration was rejected')}`);
+    }
+    if (user.status === 'SUSPENDED') {
+      return res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent('Account suspended')}`);
     }
 
     const accessToken  = signAccessToken({ id: user.id, role: user.role, status: user.status });
     const refreshToken = signRefreshToken({ id: user.id });
 
-    const qs = new URLSearchParams({ accessToken, refreshToken, userId: user.id, role: user.role });
+    const qs = new URLSearchParams({ accessToken, refreshToken, userId: user.id, role: user.role, status: user.status });
     res.redirect(`${FRONTEND_URL}/auth/callback?${qs}`);
   } catch (err) {
     const msg = err?.response?.data?.error_description || err?.message || 'Google sign-in failed';

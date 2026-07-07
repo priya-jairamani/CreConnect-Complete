@@ -1,8 +1,10 @@
 const { Router } = require('express');
 const ctrl = require('../controllers/campaigns.controller');
 const deliverablesCtrl = require('../controllers/deliverables.controller');
+const collaborationsCtrl = require('../controllers/collaborations.controller');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const { requireApproved } = require('../middleware/requireApproved');
 
 const router = Router();
 
@@ -85,7 +87,7 @@ const router = Router();
  *       422: { $ref: '#/components/responses/ValidationError' }
  */
 router.get('/',  authenticate, ctrl.list);
-router.post('/', authenticate, authorize('BRAND'), ctrl.create);
+router.post('/', authenticate, authorize('BRAND'), requireApproved, ctrl.create);
 
 /**
  * @swagger
@@ -149,8 +151,8 @@ router.post('/', authenticate, authorize('BRAND'), ctrl.create);
  *       404: { $ref: '#/components/responses/NotFound' }
  */
 router.get('/:id',    authenticate, ctrl.getById);
-router.patch('/:id',  authenticate, authorize('BRAND'), ctrl.update);
-router.delete('/:id', authenticate, authorize('BRAND'), ctrl.remove);
+router.patch('/:id',  authenticate, authorize('BRAND'), requireApproved, ctrl.update);
+router.delete('/:id', authenticate, authorize('BRAND'), requireApproved, ctrl.remove);
 
 /**
  * @swagger
@@ -174,7 +176,7 @@ router.delete('/:id', authenticate, authorize('BRAND'), ctrl.remove);
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       409: { $ref: '#/components/responses/Conflict' }
  */
-router.post('/:id/apply', authenticate, authorize('CREATOR'), ctrl.apply);
+router.post('/:id/apply', authenticate, authorize('CREATOR'), requireApproved, ctrl.apply);
 
 /**
  * @swagger
@@ -205,7 +207,7 @@ router.post('/:id/apply', authenticate, authorize('CREATOR'), ctrl.apply);
  *                 data:    { type: array, items: { type: object } }
  *                 meta:    { $ref: '#/components/schemas/PaginationMeta' }
  */
-router.get('/:id/applications', authenticate, authorize('BRAND'), ctrl.getApplications);
+router.get('/:id/applications', authenticate, authorize('BRAND'), requireApproved, ctrl.getApplications);
 
 /**
  * @swagger
@@ -228,10 +230,10 @@ router.get('/:id/applications', authenticate, authorize('BRAND'), ctrl.getApplic
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
  */
-router.patch('/applications/:appId/:action', authenticate, authorize('BRAND'),   ctrl.respondToApplication);
-router.delete('/applications/:appId/withdraw', authenticate, authorize('CREATOR'), ctrl.withdrawApplication);
-router.post('/:id/invite', authenticate, authorize('BRAND'), ctrl.inviteCreator);
-router.patch('/applications/:appId/respond/:action', authenticate, authorize('CREATOR'), ctrl.creatorRespondToInvitation);
+router.patch('/applications/:appId/:action', authenticate, authorize('BRAND'), requireApproved, ctrl.respondToApplication);
+router.delete('/applications/:appId/withdraw', authenticate, authorize('CREATOR'), requireApproved, ctrl.withdrawApplication);
+router.post('/:id/invite', authenticate, authorize('BRAND'), requireApproved, ctrl.inviteCreator);
+router.patch('/applications/:appId/respond/:action', authenticate, authorize('CREATOR'), requireApproved, ctrl.creatorRespondToInvitation);
 
 /**
  * @swagger
@@ -265,8 +267,9 @@ router.patch('/applications/:appId/respond/:action', authenticate, authorize('CR
  *     responses:
  *       201: { description: Deliverable submitted }
  */
-router.get('/collaborations/:collabId/deliverables',  authenticate, deliverablesCtrl.list);
-router.post('/collaborations/:collabId/deliverables', authenticate, authorize('CREATOR'), deliverablesCtrl.submit);
+router.get('/collaborations/:collabId/detail', authenticate, requireApproved, collaborationsCtrl.getDetail);
+router.get('/collaborations/:collabId/deliverables',  authenticate, requireApproved, deliverablesCtrl.list);
+router.post('/collaborations/:collabId/deliverables', authenticate, authorize('CREATOR'), requireApproved, deliverablesCtrl.submit);
 
 /**
  * @swagger
@@ -293,6 +296,6 @@ router.post('/collaborations/:collabId/deliverables', authenticate, authorize('C
  *     responses:
  *       200: { description: Deliverable reviewed }
  */
-router.patch('/deliverables/:deliverableId/:action', authenticate, authorize('BRAND'), deliverablesCtrl.respond);
+router.patch('/deliverables/:deliverableId/:action', authenticate, authorize('BRAND'), requireApproved, deliverablesCtrl.respond);
 
 module.exports = router;

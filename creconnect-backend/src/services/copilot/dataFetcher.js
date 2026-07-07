@@ -1,7 +1,65 @@
 'use strict';
 
+const path = require('path');
 const { Op } = require('sequelize');
 const db = require('../../models');
+const HybridEngine = require(path.join(__dirname, '../../../../ai-recommender/engine/index'));
+
+let engineReady = false;
+let engine = new HybridEngine();
+
+async function ensureEngineLoaded() {
+  if (engineReady) return;
+  const [creators, brands, collaborations] = await Promise.all([
+    db.CreatorProfile.findAll({ raw: true }),
+    db.BrandProfile.findAll({ raw: true }),
+    db.Collaboration.findAll({ raw: true }),
+  ]);
+  engine.loadData({ creators, brands, collaborations, feedback: [] });
+  engineReady = true;
+}
+
+async function liveCreatorMatches(creatorId, limit = 5) {
+  engineReady = false;
+  await ensureEngineLoaded();
+  const scored = engine.getMatchesForCreator(creatorId, limit);
+  const brandIds = scored.map((m) => m.brandId);
+  const brands = brandIds.length
+    ? await db.BrandProfile.findAll({
+        where: { id: brandIds },
+        attributes: ['id', 'companyName', 'industry', 'location'],
+      })
+    : [];
+  const brandById = Object.fromEntries(brands.map((b) => [b.id, b.toJSON()]));
+  return scored.map((m) => ({
+    brandId:    m.brandId,
+    creatorId,
+    matchScore: m.score,
+    breakdown:  m.breakdown,
+    brand:      brandById[m.brandId] || { companyName: m.brandName, industry: m.industry },
+  }));
+}
+
+async function liveBrandMatches(brandId, limit = 5) {
+  engineReady = false;
+  await ensureEngineLoaded();
+  const scored = engine.getMatches(brandId, limit);
+  const creatorIds = scored.map((m) => m.creatorId);
+  const creators = creatorIds.length
+    ? await db.CreatorProfile.findAll({
+        where: { id: creatorIds },
+        attributes: ['id', 'displayName', 'niche', 'followerCount', 'engagementRate', 'rating'],
+      })
+    : [];
+  const creatorById = Object.fromEntries(creators.map((c) => [c.id, c.toJSON()]));
+  return scored.map((m) => ({
+    brandId,
+    creatorId:  m.creatorId,
+    matchScore: m.score,
+    breakdown:  m.breakdown,
+    creator:    creatorById[m.creatorId] || { displayName: m.creatorName, niche: m.niche },
+  }));
+}
 
 async function fetchCreators({ niche, location, limit = 5 }) {
   const where = { '$user.status$': 'APPROVED' };
@@ -36,25 +94,13 @@ async function fetchAiMatches(userId, role, limit = 5) {
   if (role === 'BRAND') {
     const brand = await db.BrandProfile.findOne({ where: { userId }, raw: true });
     if (!brand) return [];
-    const rows = await db.AiMatch.findAll({
-      where:   { brandId: brand.id },
-      order:   [['matchScore', 'DESC']],
-      limit,
-      include: [{ model: db.CreatorProfile, as: 'creator', attributes: ['displayName', 'niche', 'followerCount', 'engagementRate', 'rating'] }],
-    });
-    return rows.map((r) => r.toJSON());
+    return liveBrandMatches(brand.id, limit);
   }
 
   if (role === 'CREATOR') {
     const creator = await db.CreatorProfile.findOne({ where: { userId }, raw: true });
     if (!creator) return [];
-    const rows = await db.AiMatch.findAll({
-      where:   { creatorId: creator.id },
-      order:   [['matchScore', 'DESC']],
-      limit,
-      include: [{ model: db.BrandProfile, as: 'brand', attributes: ['companyName', 'industry', 'location'] }],
-    });
-    return rows.map((r) => r.toJSON());
+    return liveCreatorMatches(creator.id, limit);
   }
 
   return [];
@@ -66,23 +112,15 @@ async function fetchAiMatchExplain(userId, role) {
   if (role === 'BRAND') {
     const brand = await db.BrandProfile.findOne({ where: { userId }, raw: true });
     if (!brand) return null;
-    const row = await db.AiMatch.findOne({
-      where:   { brandId: brand.id },
-      order:   [['matchScore', 'DESC']],
-      include: [{ model: db.CreatorProfile, as: 'creator', attributes: ['displayName', 'niche', 'engagementRate', 'followerCount'] }],
-    });
-    return row ? row.toJSON() : null;
+    const matches = await liveBrandMatches(brand.id, 1);
+    return matches[0] ?? null;
   }
 
   if (role === 'CREATOR') {
     const creator = await db.CreatorProfile.findOne({ where: { userId }, raw: true });
     if (!creator) return null;
-    const row = await db.AiMatch.findOne({
-      where:   { creatorId: creator.id },
-      order:   [['matchScore', 'DESC']],
-      include: [{ model: db.BrandProfile, as: 'brand', attributes: ['companyName', 'industry'] }],
-    });
-    return row ? row.toJSON() : null;
+    const matches = await liveCreatorMatches(creator.id, 1);
+    return matches[0] ?? null;
   }
 
   return null;

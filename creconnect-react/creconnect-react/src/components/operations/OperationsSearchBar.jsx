@@ -7,7 +7,7 @@ import { SEARCH_INDEX } from '@/utils/mockOperations';
 const TYPE_ICON = { ticket: '🎫', incident: '🚨', user: '👤', campaign: '📋', report: '📄', admin: '🧑‍💼', activity: '🕒' };
 
 /** Global Operations search — tickets, incidents, users, campaigns, reports, admins & activities. */
-export default function OperationsSearchBar({ onSelect }) {
+export default function OperationsSearchBar({ onSelect, searchIndex }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -20,11 +20,13 @@ export default function OperationsSearchBar({ onSelect }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
+  const index = searchIndex ?? SEARCH_INDEX;
+
   const results = useMemo(() => {
-    if (!query.trim()) return SEARCH_INDEX.slice(0, 8);
+    if (!query.trim()) return index.slice(0, 8);
     const q = query.toLowerCase();
-    return SEARCH_INDEX.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
-  }, [query]);
+    return index.filter((r) => r.label.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+  }, [query, index]);
 
   function handleSelect(result) {
     setOpen(false);
@@ -105,5 +107,6 @@ export default function OperationsSearchBar({ onSelect }) {
 }
 
 OperationsSearchBar.propTypes = {
-  onSelect: PropTypes.func,
+  onSelect:    PropTypes.func,
+  searchIndex: PropTypes.array,
 };

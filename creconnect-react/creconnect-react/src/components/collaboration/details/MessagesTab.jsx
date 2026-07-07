@@ -1,21 +1,21 @@
 import PropTypes from 'prop-types';
-import EmptyState from '@/components/common/EmptyState';
-import Button from '@/components/common/Button';
-import { useNavigate } from 'react-router-dom';
-import { ROUTES } from '@/constants/routes';
+import CollabChatPanel from '@/components/collaboration/CollabChatPanel';
 
-export default function MessagesTab({ item }) {
-  const navigate = useNavigate();
+export default function MessagesTab({ item, detail, detailLoading }) {
+  const partner = detail?.partner;
   return (
-    <EmptyState
-      icon="💬"
-      title="Use Messages for this conversation"
-      message={`In-drawer chat isn't available yet — message ${item.brandName ?? 'this brand'} directly from your Messages tab.`}
-      action={<Button variant="primary" size="sm" onClick={() => navigate(ROUTES.CREATOR_MESSAGES + (item.brandUserId ? `?userId=${item.brandUserId}` : ''))}>Go to Messages</Button>}
+    <CollabChatPanel
+      conversationId={detail?.conversationId}
+      partnerUserId={partner?.userId ?? item.brandUserId}
+      partnerName={partner?.name ?? item.brandName}
+      partnerAvatar={partner?.avatarUrl ?? item.brandLogo}
+      detailLoading={detailLoading}
     />
   );
 }
 
 MessagesTab.propTypes = {
-  item: PropTypes.object.isRequired,
+  item:          PropTypes.object.isRequired,
+  detail:        PropTypes.object,
+  detailLoading: PropTypes.bool,
 };

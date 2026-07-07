@@ -294,11 +294,14 @@ export default function Collaborations() {
     });
   }, []);
 
-  const handleOpen    = useCallback((item) => { setSelectedItem(item); setDrawerOpen(true); }, []);
+  const [drawerTab, setDrawerTab] = useState('overview');
+
+  const handleOpen    = useCallback((item) => { setSelectedItem(item); setDrawerTab('overview'); setDrawerOpen(true); }, []);
   const handleMessage = useCallback((item) => {
-    const userId = item?.brandUserId;
-    navigate(ROUTES.CREATOR_MESSAGES + (userId ? `?userId=${userId}` : ''));
-  }, [navigate]);
+    setSelectedItem(item);
+    setDrawerTab('messages');
+    setDrawerOpen(true);
+  }, []);
   const handleSubmit  = useCallback((item) => { setSelectedItem(item); setDrawerOpen(true); }, []);
 
   const handleSaveView = useCallback((name) => {
@@ -380,7 +383,12 @@ export default function Collaborations() {
         </>
       )}
 
-      <CollabDrawer item={selectedItem} isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <CollabDrawer
+        item={selectedItem}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        initialTab={drawerTab}
+      />
 
       <CollabNotificationsPanel
         isOpen={notificationsOpen}

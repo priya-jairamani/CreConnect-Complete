@@ -57,14 +57,41 @@ async function searchCreators(query) {
     limit,
     order,
     include: [
-      { model: SocialPlatform, as: 'platforms' },
-      { model: User, as: 'user', attributes: ['createdAt'] },
+      { model: SocialPlatform, as: 'platforms', separate: true },
+      { model: User, as: 'user', attributes: ['createdAt'], required: true },
     ],
   });
 
   const items = await enrichProfilesWithTrustScore(rows, 'CREATOR');
   return { items, total: count, page, limit };
 }
+
+/** Featured home-page creators — fixed order by username. */
+const FEATURED_CREATOR_USERNAMES = ['priya lohana', 'mohib_lifestyle', 'laibakhan'];
+
+async function getFeaturedCreators() {
+  if (!FEATURED_CREATOR_USERNAMES.length) return [];
+
+  const profiles = await CreatorProfile.findAll({
+    where: {
+      username: { [Op.in]: FEATURED_CREATOR_USERNAMES },
+      '$user.status$': 'APPROVED',
+    },
+    include: [
+      { model: SocialPlatform, as: 'platforms', separate: true },
+      { model: User, as: 'user', attributes: ['createdAt'], required: true },
+    ],
+  });
+
+  const byUsername = Object.fromEntries(profiles.map((p) => [p.username, p]));
+  const ordered = FEATURED_CREATOR_USERNAMES
+    .map((username) => byUsername[username])
+    .filter(Boolean);
+
+  return enrichProfilesWithTrustScore(ordered, 'CREATOR');
+}
+
+async function searchBrands(query) {
   const { offset, limit, page } = parsePagination(query);
   const where = { '$user.status$': 'APPROVED' };
   if (query.q)        where.companyName = { [Op.iLike]: `%${query.q}%` };
@@ -101,4 +128,4 @@ async function searchCampaigns(query) {
   return { items: rows, total: count, page, limit };
 }
 
-module.exports = { searchCreators, searchBrands, searchCampaigns };
+module.exports = { searchCreators, searchBrands, searchCampaigns, getFeaturedCreators };

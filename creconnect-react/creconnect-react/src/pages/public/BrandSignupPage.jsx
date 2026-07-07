@@ -25,8 +25,7 @@ export default function BrandSignupPage() {
     setIsLoading(true);
     try {
       await authApi.register({ email: values.email, password: values.password, role: 'BRAND', companyName: values.companyName, contactName: values.contactName, industry: values.industry });
-      // Auto-login after register
-      await login({ email: values.email, password: values.password });
+      await login({ email: values.email, password: values.password, role: 'brand' });
     } catch (err) {
       setError(err?.message || 'Registration failed. Please try again.');
       setIsLoading(false);
@@ -57,6 +56,7 @@ export default function BrandSignupPage() {
             Register your brand
           </h1>
           <p className="text-fg-muted text-sm mt-1.5">Join 850+ brands running campaigns on CreConnect</p>
+          <p className="text-fg-muted text-xs mt-2">After signup you can access your dashboard right away. Campaigns and collaborations unlock once an admin approves your account.</p>
         </div>
 
         {error && (

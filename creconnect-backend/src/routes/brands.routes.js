@@ -2,6 +2,7 @@ const { Router } = require('express');
 const ctrl = require('../controllers/brands.controller');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const { requireApproved } = require('../middleware/requireApproved');
 
 const router = Router();
 
@@ -97,9 +98,9 @@ router.get('/me/stats', authenticate, authorize('BRAND'), ctrl.getStats);
  *                 data:    { type: array, items: { $ref: '#/components/schemas/Campaign' } }
  *                 meta:    { $ref: '#/components/schemas/PaginationMeta' }
  */
-router.get('/me/campaigns',       authenticate, authorize('BRAND'), ctrl.getMyCampaigns);
-router.get('/me/collaborations',  authenticate, authorize('BRAND'), ctrl.getMyCollaborations);
-router.get('/me/applications',    authenticate, authorize('BRAND'), ctrl.getMyApplications);
+router.get('/me/campaigns',       authenticate, authorize('BRAND'), requireApproved, ctrl.getMyCampaigns);
+router.get('/me/collaborations',  authenticate, authorize('BRAND'), requireApproved, ctrl.getMyCollaborations);
+router.get('/me/applications',    authenticate, authorize('BRAND'), requireApproved, ctrl.getMyApplications);
 
 /**
  * @swagger
@@ -110,7 +111,7 @@ router.get('/me/applications',    authenticate, authorize('BRAND'), ctrl.getMyAp
  *     responses:
  *       200: { description: Pending count }
  */
-router.get('/me/pending-requests-count', authenticate, authorize('BRAND'), ctrl.getPendingRequestsCount);
+router.get('/me/pending-requests-count', authenticate, authorize('BRAND'), requireApproved, ctrl.getPendingRequestsCount);
 
 /**
  * @swagger
@@ -145,6 +146,6 @@ router.get('/me/pending-requests-count', authenticate, authorize('BRAND'), ctrl.
  *                 meta:    { $ref: '#/components/schemas/PaginationMeta' }
  */
 router.get('/list',       authenticate,                ctrl.listBrands);
-router.get('/me/activity', authenticate, authorize('BRAND'), ctrl.getMyActivity);
+router.get('/me/activity', authenticate, authorize('BRAND'), requireApproved, ctrl.getMyActivity);
 
 module.exports = router;

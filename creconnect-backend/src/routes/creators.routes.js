@@ -2,6 +2,7 @@ const { Router } = require('express');
 const ctrl = require('../controllers/creators.controller');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const { requireApproved } = require('../middleware/requireApproved');
 
 const router = Router();
 
@@ -105,7 +106,7 @@ router.get('/me/stats', authenticate, authorize('CREATOR'), ctrl.getStats);
  *                     url: { type: string }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
-router.post('/me/payouts/onboard', authenticate, authorize('CREATOR'), ctrl.startPayoutOnboarding);
+router.post('/me/payouts/onboard', authenticate, authorize('CREATOR'), requireApproved, ctrl.startPayoutOnboarding);
 
 /**
  * @swagger
@@ -118,7 +119,7 @@ router.post('/me/payouts/onboard', authenticate, authorize('CREATOR'), ctrl.star
  *         description: Updated creator profile
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
-router.post('/me/payouts/refresh', authenticate, authorize('CREATOR'), ctrl.refreshPayoutStatus);
+router.post('/me/payouts/refresh', authenticate, authorize('CREATOR'), requireApproved, ctrl.refreshPayoutStatus);
 
 /**
  * @swagger
@@ -149,7 +150,7 @@ router.post('/me/payouts/refresh', authenticate, authorize('CREATOR'), ctrl.refr
  *                 data:    { type: array, items: { $ref: '#/components/schemas/Collaboration' } }
  *                 meta:    { $ref: '#/components/schemas/PaginationMeta' }
  */
-router.get('/me/collaborations', authenticate, authorize('CREATOR'), ctrl.getCollaborations);
+router.get('/me/collaborations', authenticate, authorize('CREATOR'), requireApproved, ctrl.getCollaborations);
 
 /**
  * @swagger
@@ -168,8 +169,8 @@ router.get('/me/collaborations', authenticate, authorize('CREATOR'), ctrl.getCol
  *                 success: { type: boolean }
  *                 data:    { type: array, items: { type: object } }
  */
-router.get('/me/offers',       authenticate, authorize('CREATOR'), ctrl.getOffers);
-router.get('/me/applications', authenticate, authorize('CREATOR'), ctrl.getApplications);
+router.get('/me/offers',       authenticate, authorize('CREATOR'), requireApproved, ctrl.getOffers);
+router.get('/me/applications', authenticate, authorize('CREATOR'), requireApproved, ctrl.getApplications);
 
 /**
  * @swagger
@@ -180,7 +181,7 @@ router.get('/me/applications', authenticate, authorize('CREATOR'), ctrl.getAppli
  *     responses:
  *       200: { description: Pending count }
  */
-router.get('/me/pending-invites-count', authenticate, authorize('CREATOR'), ctrl.getPendingInvitesCount);
+router.get('/me/pending-invites-count', authenticate, authorize('CREATOR'), requireApproved, ctrl.getPendingInvitesCount);
 
 router.get   ('/me/media',                 authenticate, authorize('CREATOR'), ctrl.getMedia);
 router.post  ('/me/media',                 authenticate, authorize('CREATOR'), ctrl.addMedia);

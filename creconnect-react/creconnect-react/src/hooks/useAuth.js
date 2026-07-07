@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/context/AuthContext';
 import { ROUTES } from '@/constants/routes';
+import { isApproved, isPending, accountStatus } from '@/utils/accountStatus';
 
 /**
  * Thin consumer hook that combines AuthContext with navigation.
@@ -36,5 +37,8 @@ export function useAuth() {
     clearError:      auth.clearError,
     login:           loginAndRedirect,
     logout:          logoutAndRedirect,
+    isApproved:      isApproved(auth.user),
+    isPending:       isPending(auth.user),
+    accountStatus:   accountStatus(auth.user),
   };
 }

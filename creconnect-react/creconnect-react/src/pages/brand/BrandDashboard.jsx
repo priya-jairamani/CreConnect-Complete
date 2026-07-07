@@ -12,6 +12,7 @@ import AnimatedCounter from '@/components/common/AnimatedCounter';
 import { analyticsApi } from '@/api/analytics.api';
 import { matchingApi } from '@/api/matching.api';
 import { formatFollowers, formatEngagement } from '@/utils/formatters';
+import { useAuth } from '@/hooks/useAuth';
 
 function Sparkline({ data = [], color = '#6d5cff' }) {
   if (!data.length) return null;
@@ -39,20 +40,23 @@ function Sparkline({ data = [], color = '#6d5cff' }) {
 
 export default function BrandDashboard() {
   const navigate = useNavigate();
+  const { isPending } = useAuth();
   const [analytics,    setAnalytics]    = useState(null);
   const [recommended,  setRecommended]  = useState([]);
   const [isLoading,    setIsLoading]    = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      analyticsApi.getBrand().catch(() => null),
-      matchingApi.getRecommended().catch(() => ({ data: [] })),
-    ]).then(([analyticsRes, matchRes]) => {
+    const tasks = [analyticsApi.getBrand().catch(() => null)];
+    if (!isPending) tasks.push(matchingApi.getRecommended().catch(() => ({ data: [] })));
+
+    Promise.all(tasks).then((results) => {
+      const analyticsRes = results[0];
+      const matchRes = isPending ? { data: [] } : results[1];
       setAnalytics(analyticsRes?.data ?? null);
       setRecommended((matchRes?.data || []).slice(0, 4));
       setIsLoading(false);
     });
-  }, []);
+  }, [isPending]);
 
   const m = analytics?.metrics ?? {};
 
@@ -72,7 +76,11 @@ export default function BrandDashboard() {
           <h1 className="text-2xl font-bold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
             Welcome back 👋
           </h1>
-          <p className="text-fg-muted text-sm mt-0.5">Here's how your campaigns are performing.</p>
+          <p className="text-fg-muted text-sm mt-0.5">
+            {isPending
+              ? 'Complete your brand profile while we review your account.'
+              : "Here's how your campaigns are performing."}
+          </p>
         </div>
         <Button variant="secondary" size="sm" onClick={() => navigate(ROUTES.BRAND_REMINDERS)} icon="🔔">
           Reminders

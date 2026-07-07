@@ -12,6 +12,7 @@ import AnimatedCounter from '@/components/common/AnimatedCounter';
 import { analyticsApi } from '@/api/analytics.api';
 import { campaignsApi } from '@/api/campaigns.api';
 import { formatFollowers } from '@/utils/formatters';
+import { useAuth } from '@/hooks/useAuth';
 
 function BarChart({ data = [], color = '#6d5cff' }) {
   const max = Math.max(...data, 1);
@@ -35,6 +36,7 @@ function BarChart({ data = [], color = '#6d5cff' }) {
 
 export default function CreatorDashboard() {
   const navigate = useNavigate();
+  const { isPending } = useAuth();
   const { offers, fetchOffers, withdrawApplication } = useCampaignContext();
 
   const handleAccept = async (offer) => {
@@ -58,14 +60,15 @@ export default function CreatorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetchOffers(),
-      analyticsApi.getCreator().catch(() => null),
-    ]).then(([, analyticsRes]) => {
+    const tasks = [analyticsApi.getCreator().catch(() => null)];
+    if (!isPending) tasks.unshift(fetchOffers());
+
+    Promise.all(tasks).then((results) => {
+      const analyticsRes = isPending ? results[0] : results[1];
       setAnalytics(analyticsRes?.data ?? null);
       setIsLoading(false);
     });
-  }, [fetchOffers]);
+  }, [fetchOffers, isPending]);
 
   const m = analytics?.metrics ?? {};
   const platforms = analytics?.platforms ?? [];
@@ -86,7 +89,11 @@ export default function CreatorDashboard() {
           <h1 className="text-2xl font-bold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
             Welcome back 👋
           </h1>
-          <p className="text-fg-muted text-sm mt-0.5">Here's what's happening with your profile.</p>
+          <p className="text-fg-muted text-sm mt-0.5">
+            {isPending
+              ? 'Complete your profile while we review your account.'
+              : "Here's what's happening with your profile."}
+          </p>
         </div>
         <Button variant="secondary" size="sm" onClick={() => navigate(ROUTES.CREATOR_NOTIFS)} icon="🔔">
           Notifications
@@ -124,8 +131,10 @@ export default function CreatorDashboard() {
             Quick Actions
           </h3>
           {[
-            { label: 'Browse brands',     to: ROUTES.CREATOR_FIND_BRANDS, icon: '◎' },
-            { label: 'My collaborations', to: ROUTES.CREATOR_COLLABS,     icon: '◈' },
+            ...(isPending ? [] : [
+              { label: 'Browse brands',     to: ROUTES.CREATOR_FIND_BRANDS, icon: '◎' },
+              { label: 'My collaborations', to: ROUTES.CREATOR_COLLABS,     icon: '◈' },
+            ]),
             { label: 'Edit profile',      to: ROUTES.CREATOR_PROFILE,     icon: '✦' },
           ].map(({ label, to, icon }) => (
             <button
@@ -143,6 +152,7 @@ export default function CreatorDashboard() {
       </section>
 
       {/* Offers */}
+      {!isPending && (
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
@@ -179,6 +189,7 @@ export default function CreatorDashboard() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ const { Router } = require('express');
 const router = Router();
 
 router.use('/auth',          require('./auth.routes'));
+router.use('/public',        require('./public.routes'));
 router.use('/creators',      require('./creators.routes'));
 router.use('/brands',        require('./brands.routes'));
 router.use('/campaigns',     require('./campaigns.routes'));

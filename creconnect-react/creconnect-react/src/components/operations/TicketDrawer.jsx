@@ -108,22 +108,26 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
         {/* ── CONVERSATION ── */}
         {subTab === 'conversation' && (
           <div className="space-y-3">
-            {ticket.conversation.map((msg, i) => (
-              <div key={i} className={`flex ${msg.from === 'agent' ? 'justify-end' : 'justify-start'}`}>
-                <div
-                  className="max-w-[85%] rounded-xl p-3"
-                  style={{ background: msg.from === 'agent' ? 'rgba(109,92,255,0.12)' : 'var(--surface-2)' }}
-                >
-                  <p className="text-xs font-semibold text-fg-muted mb-1">{msg.author} · {timeAgo(msg.time)} ago</p>
-                  <p className="text-sm text-fg leading-relaxed">{msg.text}</p>
+            {(ticket.conversation ?? []).length === 0 ? (
+              <p className="text-sm text-fg-muted">No conversation thread yet.</p>
+            ) : (
+              ticket.conversation.map((msg, i) => (
+                <div key={i} className={`flex ${msg.from === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className="max-w-[85%] rounded-xl p-3"
+                    style={{ background: msg.from === 'agent' ? 'rgba(109,92,255,0.12)' : 'var(--surface-2)' }}
+                  >
+                    <p className="text-xs font-semibold text-fg-muted mb-1">{msg.author} · {timeAgo(msg.time)} ago</p>
+                    <p className="text-sm text-fg leading-relaxed">{msg.text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
 
         {/* ── RELATED USER ── */}
-        {subTab === 'user' && (
+        {subTab === 'user' && ticket.relatedUser && (
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Name', value: ticket.relatedUser.name },
@@ -138,6 +142,9 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
               </div>
             ))}
           </div>
+        )}
+        {subTab === 'user' && !ticket.relatedUser && (
+          <p className="text-sm text-fg-muted">No related user information.</p>
         )}
 
         {/* ── RELATED CAMPAIGN ── */}
@@ -163,7 +170,7 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
         {/* ── HISTORY ── */}
         {subTab === 'history' && (
           <div className="space-y-2">
-            {ticket.history.map((h, i) => (
+            {(ticket.history ?? []).map((h, i) => (
               <div key={i} className="rounded-xl p-3 flex items-center justify-between" style={{ background: 'var(--surface-2)' }}>
                 <span className="text-sm text-fg">{h.event}</span>
                 <span className="text-xs text-fg-muted whitespace-nowrap">{formatDate(h.date)}</span>
@@ -174,7 +181,7 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
 
         {/* ── NOTES ── */}
         {subTab === 'notes' && (
-          ticket.notes.length === 0 ? (
+          (ticket.notes ?? []).length === 0 ? (
             <p className="text-sm text-fg-muted">No internal notes yet.</p>
           ) : (
             <div className="space-y-2">
@@ -189,7 +196,7 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
         )}
 
         {/* ── AI SUGGESTIONS ── */}
-        {subTab === 'ai' && (
+        {subTab === 'ai' && ticket.aiSuggestions ? (
           <div className="space-y-4">
             <div className="rounded-xl p-4" style={{ background: 'rgba(109,92,255,0.08)', border: '1px solid rgba(109,92,255,0.18)' }}>
               <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-2">Suggested Reply</p>
@@ -221,6 +228,8 @@ export default function TicketDrawer({ ticket, onClose, onAction }) {
               <Badge variant={RISK_VARIANT[ticket.aiSuggestions.riskAssessment] ?? 'neutral'} label={`${ticket.aiSuggestions.riskAssessment} risk`} />
             </div>
           </div>
+        ) : (
+          <p className="text-sm text-fg-muted">AI suggestions are not available for this ticket.</p>
         )}
       </div>
     </Drawer>

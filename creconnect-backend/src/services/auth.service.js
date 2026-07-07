@@ -53,7 +53,6 @@ async function login({ email, password }) {
   });
   const passwordMatch = user && await bcrypt.compare(password, user.passwordHash);
   if (!user || !passwordMatch) throw new UnauthorizedError('Invalid email or password');
-  if (user.status === 'PENDING') throw new UnauthorizedError('Account pending admin approval');
   if (user.status === 'REJECTED') throw new UnauthorizedError('Account registration was rejected');
   if (user.status === 'SUSPENDED') throw new UnauthorizedError('Account suspended');
 

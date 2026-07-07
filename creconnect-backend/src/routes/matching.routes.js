@@ -1,13 +1,14 @@
 const { Router } = require('express');
 const { Op } = require('sequelize');
 const { authenticate } = require('../middleware/auth');
+const { requireApproved } = require('../middleware/requireApproved');
 const { ok, paginated } = require('../utils/response');
 const { CreatorProfile, Campaign, BrandProfile, SocialPlatform } = require('../models');
 const { parsePagination } = require('../utils/pagination');
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireApproved);
 
 /**
  * @swagger

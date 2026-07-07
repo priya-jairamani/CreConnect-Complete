@@ -1,15 +1,38 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import Button from '@/components/common/Button';
 import ScoreRing from '@/components/common/ScoreRing';
+import Skeleton from '@/components/common/Skeleton';
+import Avatar from '@/components/common/Avatar';
+import { publicApi } from '@/api/public.api';
+import { formatFollowers } from '@/utils/formatters';
 
-/* ── Stat banner data ── */
-const STATS = [
-  { value: '12K+',    label: 'Verified creators'  },
-  { value: '850+',    label: 'Active brands'       },
-  { value: 'Rs 420M', label: 'Paid via escrow'     },
-  { value: '98%',     label: 'On-time delivery'    },
+/* ── Stat banner data (fallback when API unavailable) ── */
+const DEFAULT_STATS = [
+  { key: 'creators', value: '12K+',    label: 'Verified creators'  },
+  { key: 'brands',   value: '850+',    label: 'Active brands'       },
+  { key: 'escrow',   value: 'Rs 420M', label: 'Paid via escrow'     },
+  { key: 'delivery', value: '98%',     label: 'On-time delivery'    },
 ];
+
+function formatStatCount(n) {
+  if (n == null || Number.isNaN(Number(n))) return null;
+  const num = Number(n);
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M+`;
+  if (num >= 1_000) return `${Math.floor(num / 1_000)}K+`;
+  return String(num);
+}
+
+function formatNiche(niche) {
+  if (!niche) return 'Creator';
+  return String(niche).charAt(0) + String(niche).slice(1).toLowerCase();
+}
+
+function cityFromLocation(location) {
+  if (!location) return 'Pakistan';
+  return location.split(',')[0].trim() || location;
+}
 
 /* ── Feature grid ── */
 const FEATURES = [
@@ -97,6 +120,26 @@ const FAQ = [
   },
 ];
 
+function BrandPreviewCard({ name, industry, location, verified }) {
+  return (
+    <div
+      className="rounded-xl p-4"
+      style={{ border: '1px solid var(--border)', background: 'var(--surface-2)' }}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar initials={(name || '?').slice(0, 2).toUpperCase()} size="sm" />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-fg truncate" style={{ fontFamily: 'Sora, sans-serif' }}>
+            {name}
+            {verified && <span className="text-success ml-1">✓</span>}
+          </p>
+          <p className="text-xs text-fg-muted truncate">{industry || 'Brand'} · {cityFromLocation(location)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Product preview card ── */
 function PreviewCard({ name, city, niche, followers, score, best }) {
   const initials = name.split(' ').map(w => w[0]).join('');
@@ -143,6 +186,38 @@ function PreviewCard({ name, city, niche, followers, score, best }) {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [discover, setDiscover] = useState(null);
+  const [discoverLoading, setDiscoverLoading] = useState(true);
+
+  useEffect(() => {
+    publicApi.getDiscover()
+      .then(({ data }) => setDiscover(data))
+      .catch(() => setDiscover(null))
+      .finally(() => setDiscoverLoading(false));
+  }, []);
+
+  const featuredCreators = discover?.creators ?? [];
+  const featuredBrands = discover?.brands ?? [];
+  const topCreator = featuredCreators[0];
+
+  const stats = useMemo(() => {
+    const creatorCount = formatStatCount(discover?.stats?.creators);
+    const brandCount = formatStatCount(discover?.stats?.brands);
+    return DEFAULT_STATS.map((s) => {
+      if (s.key === 'creators' && creatorCount) return { ...s, value: creatorCount };
+      if (s.key === 'brands' && brandCount) return { ...s, value: brandCount };
+      return s;
+    });
+  }, [discover]);
+
+  const ctaCountLabel = useMemo(() => {
+    const c = discover?.stats?.creators;
+    const b = discover?.stats?.brands;
+    if (c && b) {
+      return `Join ${formatStatCount(c) ?? c} creators and ${formatStatCount(b) ?? b} brands already growing on CreConnect.`;
+    }
+    return 'Join creators and brands already growing on CreConnect.';
+  }, [discover]);
 
   return (
     <div style={{ background: 'var(--bg)' }}>
@@ -226,11 +301,46 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Cards */}
-          <div className="grid md:grid-cols-3 gap-4 p-6">
-            <PreviewCard name="Ayesha Khan" city="Lahore" niche="Fashion" followers="184K" score={94} best />
-            <PreviewCard name="Bilal Raza"  city="Karachi" niche="Food"  followers="62K"  score={71} />
-            <PreviewCard name="Hina Malik"  city="Isb"    niche="Tech"   followers="41K"  score={58} />
+          {/* Creators */}
+          <div className="grid md:grid-cols-3 gap-4 p-6 pb-3">
+            <p className="md:col-span-3 text-xs font-semibold uppercase tracking-wide text-fg-muted">Featured creators</p>
+            {discoverLoading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)
+            ) : featuredCreators.length > 0 ? (
+              featuredCreators.map((c, i) => (
+                <PreviewCard
+                  key={c.id}
+                  name={c.displayName || c.username}
+                  city={cityFromLocation(c.location)}
+                  niche={formatNiche(c.niche)}
+                  followers={formatFollowers(c.followerCount ?? 0)}
+                  score={c.trustScore ?? 70}
+                  best={i === 0}
+                />
+              ))
+            ) : (
+              <p className="md:col-span-3 text-sm text-fg-muted text-center py-4">No creators listed yet — be the first to join.</p>
+            )}
+          </div>
+
+          {/* Brands */}
+          <div className="grid md:grid-cols-3 gap-4 px-6 pb-6 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+            <p className="md:col-span-3 text-xs font-semibold uppercase tracking-wide text-fg-muted">Featured brands</p>
+            {discoverLoading ? (
+              [1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)
+            ) : featuredBrands.length > 0 ? (
+              featuredBrands.map((b) => (
+                <BrandPreviewCard
+                  key={b.id}
+                  name={b.companyName}
+                  industry={b.industry}
+                  location={b.location}
+                  verified={b.isVerified}
+                />
+              ))
+            ) : (
+              <p className="md:col-span-3 text-sm text-fg-muted text-center py-2">No brands listed yet.</p>
+            )}
           </div>
         </div>
       </section>
@@ -240,7 +350,7 @@ export default function LandingPage() {
         <div
           className="glass max-w-[1080px] mx-auto rounded-2xl px-8 py-7 grid grid-cols-2 md:grid-cols-4 gap-6"
         >
-          {STATS.map(({ value, label }) => (
+          {stats.map(({ value, label }) => (
             <div key={label} className="text-center">
               <p className="grad-text text-3xl font-bold" style={{ fontFamily: 'Sora, sans-serif' }}>{value}</p>
               <p className="text-fg-muted text-sm mt-1">{label}</p>
@@ -316,23 +426,26 @@ export default function LandingPage() {
 
             {/* Right: match card */}
             <div className="card rounded-2xl p-6">
+              {discoverLoading ? (
+                <Skeleton className="h-64 rounded-xl" />
+              ) : topCreator ? (
+              <>
               <div className="flex items-center gap-4 mb-6">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg, #6d5cff, #4c2dd1)' }}
-                >
-                  AK
-                </div>
+                <Avatar
+                  src={topCreator.avatarUrl}
+                  initials={(topCreator.displayName || topCreator.username || '?').slice(0, 2).toUpperCase()}
+                  size="lg"
+                />
                 <div>
-                  <p className="font-semibold text-fg text-lg" style={{ fontFamily: 'Sora, sans-serif' }}>Ayesha Khan</p>
-                  <p className="text-fg-muted text-sm">Lahore · Fashion & Beauty · 184K</p>
+                  <p className="font-semibold text-fg text-lg" style={{ fontFamily: 'Sora, sans-serif' }}>{topCreator.displayName || topCreator.username}</p>
+                  <p className="text-fg-muted text-sm">{cityFromLocation(topCreator.location)} · {formatNiche(topCreator.niche)} · {formatFollowers(topCreator.followerCount ?? 0)}</p>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <span className="text-xs px-2 py-0.5 rounded-full text-success"
-                      style={{ background: 'rgba(22,179,100,0.14)' }}>🛡 91% authentic audience</span>
+                      style={{ background: 'rgba(22,179,100,0.14)' }}>🛡 {topCreator.trustScore ?? 70}% trust score</span>
                   </div>
                 </div>
                 <div className="ml-auto flex-shrink-0">
-                  <ScoreRing value={94} size={72} />
+                  <ScoreRing value={topCreator.trustScore ?? 70} size={72} />
                 </div>
               </div>
 
@@ -361,13 +474,17 @@ export default function LandingPage() {
                 style={{ background: 'rgba(109,92,255,0.06)', border: '1px solid rgba(109,92,255,0.15)' }}>
                 <p className="text-xs font-medium text-brand-400 mb-1">✦ Why CreConnect matched</p>
                 {[
-                  'Creates in your exact niche: Fashion, Beauty.',
-                  'Based in Lahore — a target city for this campaign.',
-                  'Typical rate Rs 45,000–90,000 fits your Rs 120K budget.',
+                  `Creates in your niche: ${formatNiche(topCreator.niche)}.`,
+                  `Based in ${cityFromLocation(topCreator.location)} — a strong fit for local campaigns.`,
+                  `${formatFollowers(topCreator.followerCount ?? 0)} followers with verified platform presence.`,
                 ].map(r => (
                   <p key={r} className="text-xs text-fg-muted">• {r}</p>
                 ))}
               </div>
+              </>
+              ) : (
+                <p className="text-sm text-fg-muted py-8 text-center">Featured creator profiles appear here once creators join the platform.</p>
+              )}
             </div>
           </div>
         </div>
@@ -529,7 +646,7 @@ export default function LandingPage() {
               Ready to connect smarter?
             </h2>
             <p className="text-fg-muted text-lg max-w-lg mx-auto mb-8">
-              Join 12,000+ creators and 850+ brands already growing on CreConnect.
+              {ctaCountLabel}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button

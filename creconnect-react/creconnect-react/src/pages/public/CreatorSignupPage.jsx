@@ -26,8 +26,7 @@ export default function CreatorSignupPage() {
     setIsLoading(true);
     try {
       await authApi.register({ email: values.email, password: values.password, role: 'CREATOR', username: values.username, displayName: values.username });
-      // Auto-login after register
-      await login({ email: values.email, password: values.password });
+      await login({ email: values.email, password: values.password, role: 'creator' });
     } catch (err) {
       setError(err?.message || 'Registration failed. Please try again.');
       setIsLoading(false);
@@ -58,6 +57,7 @@ export default function CreatorSignupPage() {
             Create creator account
           </h1>
           <p className="text-fg-muted text-sm mt-1.5">Join 12,000+ creators on CreConnect</p>
+          <p className="text-fg-muted text-xs mt-2">After signup you can access your dashboard right away. Collaborations unlock once an admin approves your account.</p>
         </div>
 
         {error && (

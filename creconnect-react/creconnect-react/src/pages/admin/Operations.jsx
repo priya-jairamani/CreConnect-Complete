@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/useToast';
 import { useIsMockAdmin } from '@/hooks/useIsMockAdmin';
-import LiveOperations from '@/components/operations/LiveOperations';
+import { adminApi } from '@/api/admin.api';
+import Badge from '@/components/common/Badge';
 
 import OperationsCenterTab from '@/components/operations/OperationsCenterTab';
 import SupportHubTab from '@/components/operations/SupportHubTab';
@@ -15,10 +16,13 @@ import IncidentDrawer from '@/components/operations/IncidentDrawer';
 import RegistrationDrawer from '@/components/operations/RegistrationDrawer';
 import OperationsSearchBar from '@/components/operations/OperationsSearchBar';
 
-import { TICKETS, INCIDENTS, QUICK_ACTIONS as ALL_QUICK_ACTIONS } from '@/utils/mockOperations';
+import {
+  TICKETS, INCIDENTS, QUICK_ACTIONS as ALL_QUICK_ACTIONS, SUPPORT_METRICS, SEARCH_INDEX,
+} from '@/utils/mockOperations';
+import {
+  normalizeTicket, computeSupportMetrics, buildTicketSearchIndex, unwrapTicketList,
+} from '@/utils/operationsTickets';
 
-/* Remove broadcast_alert — all platform communications go through the
-   unified Announcement Composer on the Admin Dashboard. */
 const QUICK_ACTIONS = ALL_QUICK_ACTIONS.filter((a) => a.id !== 'broadcast_alert');
 
 const TABS = [
@@ -47,22 +51,60 @@ const REGISTRATION_ACTION_MESSAGES = {
 
 export default function Operations() {
   const isMock = useIsMockAdmin();
-  return isMock ? <MockOperations /> : <LiveOperations />;
-}
-
-function MockOperations() {
   const toast = useToast();
-  const [activeTab,           setActiveTab]           = useState('center');
-  const [selectedTicket,      setSelectedTicket]      = useState(null);
-  const [selectedIncident,    setSelectedIncident]    = useState(null);
-  const [selectedRegistration,setSelectedRegistration]= useState(null);
+  const [activeTab, setActiveTab] = useState('center');
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [selectedRegistration, setSelectedRegistration] = useState(null);
 
-  /* ── Search routing ── */
+  const [rawTickets, setRawTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(!isMock);
+  const [ticketsError, setTicketsError] = useState(false);
+
+  const loadTickets = useCallback(() => {
+    if (isMock) return Promise.resolve();
+    setTicketsLoading(true);
+    setTicketsError(false);
+    return adminApi.getTickets({ limit: 200 })
+      .then((res) => setRawTickets(unwrapTicketList(res)))
+      .catch(() => setTicketsError(true))
+      .finally(() => setTicketsLoading(false));
+  }, [isMock]);
+
+  useEffect(() => { loadTickets(); }, [loadTickets]);
+
+  const tickets = useMemo(
+    () => (isMock ? TICKETS : rawTickets.map(normalizeTicket)),
+    [isMock, rawTickets],
+  );
+
+  const supportMetrics = useMemo(
+    () => (isMock ? SUPPORT_METRICS : computeSupportMetrics(rawTickets)),
+    [isMock, rawTickets],
+  );
+
+  const searchIndex = useMemo(
+    () => (isMock ? SEARCH_INDEX : [...buildTicketSearchIndex(tickets), ...SEARCH_INDEX.filter((r) => r.type !== 'ticket')]),
+    [isMock, tickets],
+  );
+
+  function findTicket(id) {
+    return tickets.find((t) => t.id === id || t.rawId === id);
+  }
+
+  async function applyTicketUpdate(ticket, payload) {
+    const id = ticket.rawId ?? ticket.id;
+    await adminApi.updateTicket(id, payload);
+    await loadTickets();
+    const refreshed = findTicket(id);
+    if (refreshed) setSelectedTicket(refreshed);
+  }
+
   function handleSearchSelect(result) {
     switch (result.type) {
       case 'ticket': {
         setActiveTab('support');
-        const ticket = TICKETS.find((t) => t.id === result.id);
+        const ticket = findTicket(result.id);
         if (ticket) setSelectedTicket(ticket);
         break;
       }
@@ -84,7 +126,6 @@ function MockOperations() {
     }
   }
 
-  /* ── Priority routing ── */
   function handleSelectPriority(priority) {
     if (priority.category === 'Verification') setActiveTab('registrations');
     else if (priority.category === 'Payments') setActiveTab('support');
@@ -94,25 +135,43 @@ function MockOperations() {
     toast.success(`AI recommendation opened: ${priority.recommendedAction}`);
   }
 
-  /* ── Ticket actions ── */
-  function handleTicketAction(actionId, ticket) {
+  async function handleTicketAction(actionId, ticket) {
     if (actionId === 'use_reply') {
       toast.success(`AI suggested reply copied for ${ticket.id}.`);
       return;
     }
+
+    if (!isMock) {
+      try {
+        if (actionId === 'resolve') {
+          await applyTicketUpdate(ticket, { status: 'RESOLVED' });
+          toast.success(`${ticket.id} marked as resolved.`);
+          setSelectedTicket(null);
+          return;
+        }
+        if (actionId === 'escalate') {
+          await applyTicketUpdate(ticket, { status: 'IN_PROGRESS', priority: 'HIGH' });
+          toast.success(`${ticket.id} escalated.`);
+          setSelectedTicket(null);
+          return;
+        }
+      } catch (err) {
+        toast.error(err?.message || 'Failed to update ticket.');
+        return;
+      }
+    }
+
     const msg = actionId === 'escalate' ? 'escalated' : 'marked as resolved';
     toast.success(`${ticket.id} ${msg}.`);
     setSelectedTicket(null);
   }
 
-  /* ── Incident actions ── */
   function handleIncidentAction(actionId, incident) {
     const msg = actionId === 'escalate' ? 'escalated to on-call engineer' : 'resolved';
     toast.success(`${incident.id} ${msg}.`);
     setSelectedIncident(null);
   }
 
-  /* ── Registration actions ── */
   function handleRegistrationAction(actionId, reg) {
     const msg = REGISTRATION_ACTION_MESSAGES[actionId] ?? 'updated';
     toast.success(`${reg.name} ${msg}.`);
@@ -121,8 +180,25 @@ function MockOperations() {
     }
   }
 
-  /* ── Bulk support actions ── */
-  function handleBulkAction(actionId, selectedIds) {
+  async function handleBulkAction(actionId, selectedIds) {
+    if (!isMock && ['resolve', 'escalate', 'assign'].includes(actionId)) {
+      try {
+        await Promise.all(selectedIds.map((id) => {
+          const ticket = findTicket(id);
+          if (!ticket) return Promise.resolve();
+          const payload = actionId === 'resolve'
+            ? { status: 'RESOLVED' }
+            : actionId === 'escalate'
+              ? { status: 'IN_PROGRESS', priority: 'HIGH' }
+              : { status: 'IN_PROGRESS' };
+          return adminApi.updateTicket(ticket.rawId ?? ticket.id, payload);
+        }));
+        await loadTickets();
+      } catch (err) {
+        toast.error(err?.message || 'Bulk update failed.');
+        return;
+      }
+    }
     const msg = BULK_ACTION_MESSAGES[actionId] ?? 'updated';
     toast.success(`${selectedIds.length} ticket(s) ${msg}.`);
   }
@@ -131,7 +207,6 @@ function MockOperations() {
     toast.success('Ticket export started.');
   }
 
-  /* ── AI / Automation ── */
   function handleAutomationToggle(automation) {
     const willBeActive = automation.status !== 'active';
     toast.success(`${automation.name} ${willBeActive ? 'enabled' : 'paused'}.`);
@@ -141,7 +216,6 @@ function MockOperations() {
     toast.success(`${action}: "${rec.title}"`);
   }
 
-  /* ── Quick actions ── */
   function handleQuickAction(actionId) {
     switch (actionId) {
       case 'create_incident':
@@ -171,20 +245,21 @@ function MockOperations() {
   return (
     <div className="p-6 space-y-6">
 
-      {/* ── Header ── */}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
-            Operations
-          </h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold text-fg" style={{ fontFamily: 'Sora, sans-serif' }}>
+              Operations
+            </h1>
+            {!isMock && <Badge variant="success">Live data</Badge>}
+          </div>
           <p className="text-fg-muted text-sm mt-0.5">
             Platform operations command center — monitor registrations, support, activity, system health, and AI-driven recommendations.
           </p>
         </div>
-        <OperationsSearchBar onSelect={handleSearchSelect} />
+        <OperationsSearchBar onSelect={handleSearchSelect} searchIndex={searchIndex} />
       </header>
 
-      {/* ── Quick Actions ── */}
       <div className="card rounded-2xl p-3 flex items-center gap-2 overflow-x-auto sticky top-0 z-10">
         {QUICK_ACTIONS.map((a) => (
           <button
@@ -197,7 +272,6 @@ function MockOperations() {
             {a.label}
           </button>
         ))}
-        {/* Shortcut to registrations */}
         <button
           type="button"
           onClick={() => setActiveTab('registrations')}
@@ -208,7 +282,6 @@ function MockOperations() {
         </button>
       </div>
 
-      {/* ── Tabs ── */}
       <div className="flex items-center gap-1 bg-surface-2 rounded-full p-1 w-fit overflow-x-auto">
         {TABS.map((tab) => (
           <button
@@ -225,7 +298,6 @@ function MockOperations() {
         ))}
       </div>
 
-      {/* ── Tab content ── */}
       {activeTab === 'center' && (
         <OperationsCenterTab onSelectPriority={handleSelectPriority} />
       )}
@@ -236,6 +308,11 @@ function MockOperations() {
 
       {activeTab === 'support' && (
         <SupportHubTab
+          tickets={tickets}
+          metrics={supportMetrics}
+          loading={ticketsLoading}
+          error={ticketsError}
+          onRetry={loadTickets}
           onSelectTicket={setSelectedTicket}
           onBulkAction={handleBulkAction}
           onExport={handleExport}
@@ -255,7 +332,6 @@ function MockOperations() {
         />
       )}
 
-      {/* ── Detail drawers ── */}
       <TicketDrawer
         ticket={selectedTicket}
         onClose={() => setSelectedTicket(null)}

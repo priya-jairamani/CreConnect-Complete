@@ -1,11 +1,12 @@
 const { Router } = require('express');
 const ctrl = require('../controllers/messages.controller');
 const { authenticate } = require('../middleware/auth');
+const { requireApproved } = require('../middleware/requireApproved');
 const { uploadChatAttachment } = require('../middleware/upload');
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireApproved);
 
 /**
  * @swagger

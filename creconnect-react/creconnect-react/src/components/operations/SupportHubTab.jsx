@@ -1,25 +1,39 @@
 import { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
 import Badge from '@/components/common/Badge';
 import Avatar from '@/components/common/Avatar';
+import Button from '@/components/common/Button';
+import Skeleton from '@/components/common/Skeleton';
 import EntityToolbar from '@/components/userIntelligence/EntityToolbar';
 import { timeAgo } from '@/utils/formatters';
 import {
-  SUPPORT_CATEGORIES, SUPPORT_METRICS, TICKETS, TICKET_STATUS_META, TICKET_PRIORITY_META, SLA_META,
+  SUPPORT_CATEGORIES, TICKETS, TICKET_STATUS_META, TICKET_PRIORITY_META, SLA_META,
   TICKET_FILTERS, TICKET_BULK_ACTIONS,
 } from '@/utils/mockOperations';
 
 /** Enterprise support management — category overview, support dashboard & ticket workspace. */
-export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }) {
+export default function SupportHubTab({
+  tickets: ticketsProp,
+  metrics,
+  loading = false,
+  error = false,
+  onRetry,
+  onSelectTicket,
+  onBulkAction,
+  onExport,
+}) {
+  const tickets = ticketsProp ?? TICKETS;
   const [search, setSearch] = useState('');
   const [filterValues, setFilterValues] = useState({ category: 'All', priority: 'All', status: 'All', sla: 'All' });
   const [selected, setSelected] = useState([]);
 
   const filtered = useMemo(() => {
-    let rows = TICKETS;
+    let rows = tickets;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       rows = rows.filter((t) =>
         t.id.toLowerCase().includes(q) ||
+        (t.rawId && t.rawId.toLowerCase().includes(q)) ||
         t.subject.toLowerCase().includes(q) ||
         t.user.toLowerCase().includes(q) ||
         t.agent.toLowerCase().includes(q)
@@ -30,14 +44,14 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
       rows = rows.filter((t) => t[key] === value);
     });
     return rows;
-  }, [search, filterValues]);
+  }, [tickets, search, filterValues]);
 
   function toggleRow(id) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.length === filtered.length ? [] : filtered.map((t) => t.id)));
+    setSelected((prev) => (prev.length === filtered.length ? [] : filtered.map((t) => t.rawId ?? t.id)));
   }
 
   function handleBulkAction(actionId) {
@@ -45,14 +59,45 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
     setSelected([]);
   }
 
-  const categoryCounts = SUPPORT_CATEGORIES.map((cat) => ({
+  const categories = useMemo(() => {
+    const fromData = [...new Set(tickets.map((t) => t.category))].filter(Boolean);
+    return fromData.length ? fromData : SUPPORT_CATEGORIES;
+  }, [tickets]);
+
+  const categoryCounts = categories.map((cat) => ({
     category: cat,
-    count: TICKETS.filter((t) => t.category === cat && !['resolved', 'closed'].includes(t.status)).length,
+    count: tickets.filter((t) => t.category === cat && !['resolved', 'closed'].includes(t.status)).length,
   }));
+
+  const dashboardMetrics = metrics ?? {
+    openTickets: tickets.filter((t) => !['resolved', 'closed'].includes(t.status)).length,
+    pendingResponses: tickets.filter((t) => t.status === 'open').length,
+    escalatedCases: tickets.filter((t) => t.priority === 'urgent').length,
+    resolvedToday: tickets.filter((t) => t.status === 'resolved').length,
+    avgResponseTimeMin: '—',
+    csat: '—',
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card rounded-2xl p-8 text-center space-y-3">
+        <p className="text-danger text-sm">Could not load support tickets from the server.</p>
+        {onRetry && <Button variant="secondary" size="sm" onClick={onRetry}>Retry</Button>}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Support Categories */}
       <div>
         <h3 className="text-sm font-semibold text-fg mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>Support Categories</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -65,17 +110,16 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
         </div>
       </div>
 
-      {/* Support Dashboard */}
       <div>
         <h3 className="text-sm font-semibold text-fg mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>Support Dashboard</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           {[
-            { label: 'Open Tickets', value: SUPPORT_METRICS.openTickets },
-            { label: 'Pending Responses', value: SUPPORT_METRICS.pendingResponses },
-            { label: 'Escalated Cases', value: SUPPORT_METRICS.escalatedCases },
-            { label: 'Resolved Today', value: SUPPORT_METRICS.resolvedToday },
-            { label: 'Avg. Response Time', value: `${SUPPORT_METRICS.avgResponseTimeMin}m` },
-            { label: 'Customer Satisfaction', value: `${SUPPORT_METRICS.csat}/5` },
+            { label: 'Open Tickets', value: dashboardMetrics.openTickets },
+            { label: 'Pending Responses', value: dashboardMetrics.pendingResponses },
+            { label: 'Escalated Cases', value: dashboardMetrics.escalatedCases },
+            { label: 'Resolved Today', value: dashboardMetrics.resolvedToday },
+            { label: 'Avg. Response Time', value: typeof dashboardMetrics.avgResponseTimeMin === 'number' ? `${dashboardMetrics.avgResponseTimeMin}m` : dashboardMetrics.avgResponseTimeMin },
+            { label: 'Customer Satisfaction', value: typeof dashboardMetrics.csat === 'number' ? `${dashboardMetrics.csat}/5` : dashboardMetrics.csat },
           ].map((m) => (
             <div key={m.label} className="card rounded-2xl p-4">
               <p className="text-xs text-fg-muted">{m.label}</p>
@@ -85,7 +129,6 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
         </div>
       </div>
 
-      {/* Support Workspace */}
       <div>
         <h3 className="text-sm font-semibold text-fg mb-3" style={{ fontFamily: 'Sora, sans-serif' }}>Support Workspace</h3>
         <div className="space-y-4">
@@ -124,13 +167,14 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
                 </thead>
                 <tbody>
                   {filtered.map((t) => {
+                    const rowId = t.rawId ?? t.id;
                     const status = TICKET_STATUS_META[t.status] ?? TICKET_STATUS_META.open;
                     const priority = TICKET_PRIORITY_META[t.priority] ?? TICKET_PRIORITY_META.medium;
                     const sla = SLA_META[t.sla] ?? SLA_META.on_track;
                     return (
-                      <tr key={t.id} style={{ borderTop: '1px solid var(--border)' }}>
+                      <tr key={rowId} style={{ borderTop: '1px solid var(--border)' }}>
                         <td className="px-4 py-3">
-                          <input type="checkbox" checked={selected.includes(t.id)} onChange={() => toggleRow(t.id)} />
+                          <input type="checkbox" checked={selected.includes(rowId)} onChange={() => toggleRow(rowId)} />
                         </td>
                         <td className="px-3 py-3">
                           <p className="text-fg font-medium whitespace-nowrap">{t.id}</p>
@@ -175,3 +219,14 @@ export default function SupportHubTab({ onSelectTicket, onBulkAction, onExport }
     </div>
   );
 }
+
+SupportHubTab.propTypes = {
+  tickets:        PropTypes.array,
+  metrics:        PropTypes.object,
+  loading:        PropTypes.bool,
+  error:          PropTypes.bool,
+  onRetry:        PropTypes.func,
+  onSelectTicket: PropTypes.func,
+  onBulkAction:   PropTypes.func,
+  onExport:       PropTypes.func,
+};

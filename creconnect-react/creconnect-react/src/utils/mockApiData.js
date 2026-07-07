@@ -129,7 +129,7 @@ const DEMO_COLLABORATIONS = [
     id: 'col1', status: 'ACTIVE',
     campaign: { id: 'c1', title: 'Summer Tech Unboxing', niche: 'TECH' },
     creator: { displayName: 'Laiba Khan', username: 'laibakhan', avatarUrl: '' },
-    brand: { companyName: 'TechWave', logoUrl: '' },
+    brand: { userId: 'demo-brand-1', companyName: 'TechWave', logoUrl: '' },
     agreedAmount: 75000, startDate: daysAgo(10), dueDate: daysAhead(5),
     deliverables: { reels: 2, posts: 1, stories: 3 }, createdAt: daysAgo(10),
   },
@@ -137,7 +137,7 @@ const DEMO_COLLABORATIONS = [
     id: 'col2', status: 'ACTIVE',
     campaign: { id: 'c2', title: 'Ramadan Beauty Routine', niche: 'BEAUTY' },
     creator: { displayName: 'Laiba Khan', username: 'laibakhan', avatarUrl: '' },
-    brand: { companyName: 'GlowUp Cosmetics', logoUrl: '' },
+    brand: { userId: 'b2', companyName: 'GlowUp Cosmetics', logoUrl: '' },
     agreedAmount: 50000, startDate: daysAgo(7), dueDate: daysAhead(3),
     deliverables: { reels: 1, posts: 2, stories: 5, videos: 1 }, createdAt: daysAgo(7),
   },
@@ -145,7 +145,7 @@ const DEMO_COLLABORATIONS = [
     id: 'col3', status: 'COMPLETED',
     campaign: { id: 'c_old', title: 'Winter Skincare Campaign', niche: 'BEAUTY' },
     creator: { displayName: 'Laiba Khan', username: 'laibakhan', avatarUrl: '' },
-    brand: { companyName: 'PureSkin', logoUrl: '' },
+    brand: { userId: 'b4', companyName: 'PureSkin', logoUrl: '' },
     agreedAmount: 60000, startDate: daysAgo(45), dueDate: daysAgo(20),
     deliverables: { reels: 2, posts: 2, stories: 6 }, createdAt: daysAgo(45),
   },
@@ -153,11 +153,43 @@ const DEMO_COLLABORATIONS = [
     id: 'col4', status: 'PENDING',
     campaign: { id: 'c3', title: 'Fit Life 30-Day Challenge', niche: 'FITNESS' },
     creator: { displayName: 'Laiba Khan', username: 'laibakhan', avatarUrl: '' },
-    brand: { companyName: 'FitFuel Pakistan', logoUrl: '' },
+    brand: { userId: 'b3', companyName: 'FitFuel Pakistan', logoUrl: '' },
     agreedAmount: 90000, startDate: null, dueDate: null,
     deliverables: { reels: 4, posts: 2, stories: 10 }, createdAt: daysAgo(2),
   },
 ];
+
+const COLLAB_CONVERSATION_IDS = { col1: 'conv1', col2: 'conv2', col4: 'conv3' };
+
+function buildCollabDetail(collabId) {
+  const col = DEMO_COLLABORATIONS.find((c) => c.id === collabId);
+  if (!col) return null;
+  return {
+    conversationId: COLLAB_CONVERSATION_IDS[collabId] ?? null,
+    partner: {
+      userId: col.brand?.userId ?? 'demo-brand-1',
+      name: col.brand?.companyName ?? 'Brand',
+      avatarUrl: col.brand?.logoUrl ?? '',
+      role: 'BRAND',
+    },
+    timeline: [
+      { id: 't1', type: 'created', label: 'Collaboration created', at: col.createdAt },
+      { id: 't2', type: 'status', label: `Status: ${col.status}`, at: col.createdAt },
+    ],
+    payments: col.agreedAmount
+      ? [{ id: 'pay1', amount: col.agreedAmount, status: col.status === 'COMPLETED' ? 'RELEASED' : 'ESCROW', createdAt: col.createdAt }]
+      : [],
+    analytics: { total: 3, submitted: col.status === 'COMPLETED' ? 3 : 1, approved: col.status === 'COMPLETED' ? 3 : 0 },
+    contract: {
+      title: col.campaign?.title ?? 'Campaign',
+      budget: col.agreedAmount ?? 0,
+      startDate: col.startDate,
+      endDate: col.dueDate,
+      deliverables: col.deliverables ?? {},
+    },
+    documents: [],
+  };
+}
 
 const BRAND_COLLABS = [
   {
@@ -397,6 +429,11 @@ export function getMockApiResponse(method, url) {
 
   const adminMock = getAdminMockResponse(method, url);
   if (adminMock) return adminMock;
+
+  const collabDetailMatch = path.match(/\/campaigns\/collaborations\/([^/]+)\/detail$/);
+  if (m === 'get' && collabDetailMatch) {
+    return { data: buildCollabDetail(collabDetailMatch[1]) };
+  }
 
   for (const mock of SPECIFIC_MOCKS) {
     if (mock.method === m && mock.pattern.test(path)) {

@@ -14,6 +14,7 @@ export const campaignsApi = {
   respondToInvitation:  (appId, action)         => api.patch(`/campaigns/applications/${appId}/respond/${action}`),
 
   getDeliverables:      (collabId)                        => api.get(`/campaigns/collaborations/${collabId}/deliverables`),
+  getCollaborationDetail: (collabId)                      => api.get(`/campaigns/collaborations/${collabId}/detail`),
   submitDeliverable:    (collabId, data)                   => api.post(`/campaigns/collaborations/${collabId}/deliverables`, data),
   respondToDeliverable: (deliverableId, action, feedback)  => api.patch(`/campaigns/deliverables/${deliverableId}/${action}`, { feedback }),
 };
