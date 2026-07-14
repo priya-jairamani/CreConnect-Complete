@@ -8,13 +8,14 @@ const { fetchPlatformProfile, fetchPlatformMedia, exchangeInstagramLongLivedToke
 
 const CALLBACK_BASE = process.env.BACKEND_URL || 'http://localhost:5000';
 
-const PLATFORM_CALLBACK_OVERRIDES = {
-  FACEBOOK: process.env.FACEBOOK_CALLBACK_URL,
-};
-
+/**
+ * OAuth redirect URI for a platform.
+ * Always derived from BACKEND_URL so tunnel/domain changes stay in sync.
+ * FACEBOOK_CALLBACK_URL is kept in .env only as a reminder of the URI to
+ * register in Meta Developer Console — it must match this value.
+ */
 function callbackUrl(platform) {
-  return PLATFORM_CALLBACK_OVERRIDES[platform] ||
-    `${CALLBACK_BASE}/api/v1/social/${platform.toLowerCase()}/callback`;
+  return `${CALLBACK_BASE}/api/v1/social/${platform.toLowerCase()}/callback`;
 }
 
 const PLATFORMS = {
